@@ -1,0 +1,47 @@
+{
+  "name": "callofduty",
+  "version": "1.0.0",
+  "description": "project for the overlap of the role. callofduty is a project about managing duties for the soldiers in the system using database",
+  "main": "index.js",
+  "scripts": {
+    "test": "cross-env NODE_ENV=test LOG_LEVEL=error vitest && vitest --run",
+    "build": "tsc -p tsconfig.json",
+    "start": "cross-env NODE_ENV=dev node dist/app.js | pino-pretty",
+    "build-start": "npm run build && npm start",
+    "build-start-curl": "npm run build && npm start && curl http://localhost:3000/health",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaorKrasner/callofduty.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MaorKrasner/callofduty/issues"
+  },
+  "homepage": "https://github.com/MaorKrasner/callofduty#readme",
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.1",
+    "fastify": "^4.26.0",
+    "mongodb": "^6.3.0",
+    "vitest": "^1.2.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/mocha": "^10.0.6",
+    "@types/mongodb": "^4.0.7",
+    "@types/node": "^20.11.16",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "eslint-config-standard-with-typescript": "^43.0.1",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.1.1",
+    "pino-pretty": "^10.3.1",
+    "typescript": "^5.3.3"
+  }
+}
