@@ -1,11 +1,8 @@
-import { test, assert } from "vitest";
-import {createServer, start} from "../src/server";  // Update the import statement
+import { test, expect } from "vitest";
+import {createServer, start} from "../src/server";
 
 const server = createServer();
-
-async () => {
-    await start(server);
-};
+start(server);
 
 test("Health check endpoint returns status ok", async () => {
     const response = await server.inject({
@@ -13,8 +10,8 @@ test("Health check endpoint returns status ok", async () => {
         url: "/health",
     });
 
-    assert.equal(response.statusCode, 200);
-    assert.deepEqual(response.json(), { status: "ok" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toStrictEqual({status: "ok"});
 });
 
 test("Health db check endpoint returns status ok", async () => {
@@ -23,6 +20,6 @@ test("Health db check endpoint returns status ok", async () => {
         url: "/health/db",
     });
 
-    assert.equal(response.statusCode, 200);
-    assert.deepEqual(response.json(), { status: "ok" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toStrictEqual({status: "ok"});
 });
