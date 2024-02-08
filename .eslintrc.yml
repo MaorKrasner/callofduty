@@ -4,4 +4,7 @@ env:
 extends: standard-with-typescript
 parserOptions:
   ecmaVersion: latest
-rules: {}
+rules: {
+  eqeqeq: warn
+  strict: off
+}
