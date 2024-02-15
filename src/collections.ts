@@ -1,5 +1,6 @@
-/*
-// Collection of a soldier
+import { ObjectId } from "mongodb";
+import { GeoJSON} from "geojson";
+
 interface Soldier {
     _id: string;
     name: string;
@@ -8,18 +9,17 @@ interface Soldier {
       value: number;
     };
     limitations: string[];
-    createdAt: ISODate;
-    updatedAt: ISODate;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-// Collection of a duty
 interface Duty {
     _id: ObjectId;
     name: string;
     description: string;
-    location: GeoJSON Point;
-    startTime: ISODate;
-    endTime: ISODate;
+    location: GeoJSON;
+    startTime: Date;
+    endTime: Date;
     minRank: number;
     maxRank: number;
     constraints: string[];
@@ -29,9 +29,20 @@ interface Duty {
     status: string;
     statusHistory: {
       status: string;
-      date: ISODate;
+      date: Date;
     }[];
-    createdAt: ISODate;
-    updatedAt: ISODate;
+    createdAt: Date;
+    updatedAt: Date;
 }
-*/
+
+const rankValueNameDictionary = {
+  0 : "private",
+  1 : "corporal",
+  2 : "sergeant",
+  3 : "lieutenant",
+  4 : "captain",
+  5 : "major",
+  6 : "colonel"
+}
+
+export { Soldier, Duty, rankValueNameDictionary };
