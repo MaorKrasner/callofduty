@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "project for the overlap of the role. callofduty is a project about managing duties for the soldiers in the system using database",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "cross-env NODE_ENV=test LOG_LEVEL=error vitest && vitest --run",
     "build": "tsc -p tsconfig.json",
@@ -26,10 +27,13 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.1",
     "fastify": "^4.26.0",
+    "geojson": "^0.5.0",
     "mongodb": "^6.3.0",
-    "vitest": "^1.2.2"
+    "vitest": "^1.2.2",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.14",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.6",
     "@types/mongodb": "^4.0.7",
