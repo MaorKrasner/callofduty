@@ -1,21 +1,18 @@
 import { fastify, FastifyInstance } from "fastify";
 
 import config from "./config.js";
-import dutyRoutes from "./routes/dutyRoutes.js";
 import logger from "./logger.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import soldierRoutes from "./routes/soldierRoutes.js";
 
-const createServer = async() => {
-    const server = fastify({ logger: true });
+const createServer = async () => {
+  const server = fastify({ logger: true });
 
-    healthRoutes(server);
+  healthRoutes(server);
 
-    await server.register(soldierRoutes);
+  await server.register(soldierRoutes);
 
-    await server.register(dutyRoutes);
-
-    return server;
+  return server;
 };
 
 const start = async (server: FastifyInstance) => {
