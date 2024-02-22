@@ -1,10 +1,8 @@
 import { client } from "./connections.js"
-import logger from "../logger.js"
 import { deleteOne, findMany, findOne, insertOne, updateOne } from "./operations.js"
 import { type Soldier } from "../types/soldier.js";
 
 const soldiersCollectionName = "soldiers";
-const dutiesCollectionName = "duties";
 
 export const findSoldier = async (id: string) => {
     const soldier = await findOne<Soldier & Document>(client, soldiersCollectionName, {_id : id});
