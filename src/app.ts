@@ -1,9 +1,16 @@
+import { validateConfig } from "./config.js";
+import { connectToDB } from "./db/connections.js";
 import {createServer, start} from "./server.js";
-import { connectToMongoDB } from "./mongoConnect.js";
 
+export const initialize = async () => {
+    validateConfig();
 
-await connectToMongoDB();
+    await connectToDB();
 
-const server = createServer();
-start(server);
+    const server = await createServer();
+    start(server);
 
+    return server;
+}
+
+initialize();
