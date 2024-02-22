@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb";
 import logger from "../logger.js";
 import { rankValueNameDictionary, type Soldier } from "../types/soldier.js";
 import { soldierPostSchema, soldierPatchSchema } from "../schemas/soldierSchemas.js";
-import { deleteSoldier, findManySoldiers, findSoldier, insertSoldier, isSoldierExists, updateSoldier } from "../db/usefulDBFunctions.js";
+import { deleteSoldier, findManySoldiers, findSoldier, insertSoldier, isSoldierExists, updateSoldier } from "../db/soldierDBFunctions.js";
 
 export const createSoldier = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
