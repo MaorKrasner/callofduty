@@ -1,16 +1,16 @@
 import { validateConfig } from "./config.js";
+import { createServer, start } from "./server.js";
 import { connectToDB } from "./db/connections.js";
-import {createServer, start} from "./server.js";
 
 export const initialize = async () => {
-    validateConfig();
+  validateConfig();
 
-    await connectToDB();
+  await connectToDB();
 
-    const server = await createServer();
-    start(server);
+  const server = await createServer();
+  start(server);
 
-    return server;
-}
+  return server;
+};
 
 initialize();
