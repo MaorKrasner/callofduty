@@ -1,5 +1,4 @@
 import { client } from "./connections.js"
-import logger from "../logger.js"
 import { deleteOne, findMany, findOne, insertOne, updateOne } from "./operations.js"
 import { type Soldier } from "../types/soldier.js";
 
