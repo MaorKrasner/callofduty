@@ -41,7 +41,7 @@ export const findManySoldiers = async (
     }
 
     if (rankValue) {
-        filtersArray.push({'rank.value': rankValue});
+        filtersArray.push({'rank.value': parseInt(String(rankValue))});
     }
 
     const combinedFilter = { $and: filtersArray };
