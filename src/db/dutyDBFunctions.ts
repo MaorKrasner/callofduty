@@ -20,3 +20,59 @@ export const isDutyExists = async (id: ObjectId) => {
     const duty = await findDuty(id);
     return duty !== null;
 }
+
+export const findManyDuties = async (
+    name: string | undefined,
+    location: number[] | undefined,
+    startTime: Date | undefined,
+    endTime: Date | undefined,
+    constraints: string[] | undefined,
+    soldiersRequired: number | undefined,
+    value: number | undefined,
+    minRank: number | undefined,
+    maxRank: number | undefined
+) => {
+    const filtersArray: any = [];
+
+    if (name) {
+        filtersArray.push({name: name});
+    }
+
+    if (location) {
+        filtersArray.push({'location.coordinates': {$all: location}});
+    }
+
+    if (startTime) {
+        const timeAsString = new Date(startTime).toISOString();
+        filtersArray.push({startTime: timeAsString});
+    }
+
+    if (endTime) {
+        const timeAsString = new Date(endTime).toISOString();
+        filtersArray.push({endTime: timeAsString});
+    }
+
+    if (constraints) {
+        filtersArray.push({constraints: {$all: constraints}});
+    }
+
+    if (soldiersRequired) {
+        filtersArray.push({soldiersRequired: parseInt(String(soldiersRequired))});
+    }
+
+    if (value) {
+        filtersArray.push({value: parseInt(String(value))});
+    }
+
+    if (minRank) {
+        filtersArray.push({minRank: parseInt(String(minRank))});
+    }
+
+    if (maxRank) {
+        filtersArray.push({maxRank: parseInt(String(maxRank))});
+    }
+
+    const combinedFilter = {$and : filtersArray};
+    const duties = await findMany<Duty & Document>(client, dutiesCollectionName, combinedFilter);
+    return duties as Duty[];
+}
