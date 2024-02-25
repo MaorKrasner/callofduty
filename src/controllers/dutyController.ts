@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 import { dutyPostSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
-import { findManyDuties, insertDuty, isDutyExists } from "../db/dutyDBFunctions.js";
+import { findDuty, findManyDuties, insertDuty } from "../db/dutyDBFunctions.js";
 
 export const createDuty = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -107,5 +107,24 @@ export const getDutiesByFilters = async (request: FastifyRequest, reply: Fastify
         logger.error(`Creating a new duty has failed. Error: ${err.message}`);
     } finally {
         logger.info(`Status code for searching duties via filters is ${reply.statusCode}`);
+    }
+}
+
+export const getDutyById = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    try {
+        const duty = await findDuty(id);
+
+        if (duty) {
+            await reply.code(200).send({message: "Duty Found!", data: duty});
+        } else {
+            await reply.code(404).send({error : `Duty not found. Check the length of the id you passed and the id itself.`});
+        }
+    } catch (error: unknown) {
+        const err = error as Error;
+        await reply.code(500).send({status: err, error: `Internal Server Error. Accessing route /duties/${id} (search duty by id) failed.`});
+        logger.error(`Searching duty by id has failed. Error: ${err.message}`);
+    } finally {
+        logger.info(`Status code for searching duty with id ${id} is ${reply.statusCode}`);
     }
 }
