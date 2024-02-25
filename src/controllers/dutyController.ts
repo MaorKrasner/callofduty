@@ -1,10 +1,11 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import type { GeoJSON } from "geojson";
 import { ObjectId } from "mongodb";
 
 import { dutyPostSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
-import { insertDuty, isDutyExists } from "../db/dutyDBFunctions.js";
+import { findManyDuties, insertDuty, isDutyExists } from "../db/dutyDBFunctions.js";
 
 export const createDuty = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -16,14 +17,7 @@ export const createDuty = async (request: FastifyRequest, reply: FastifyReply) =
             return;
         }
 
-        const objId = new ObjectId();
-
-        if (await isDutyExists(objId)) {
-            return;
-        }
-
         const duty: Duty = {
-            _id: objId,
             name: dutyData.name,
             description: dutyData.description,
             location: dutyData.location,
@@ -57,3 +51,61 @@ export const createDuty = async (request: FastifyRequest, reply: FastifyReply) =
         logger.info(`Status code for creating a new duty is ${reply.statusCode}`);
     }
 };
+
+export const getDutiesByFilters = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const {
+            name,
+            location,
+            startTime,
+            endTime,
+            constraints,
+            soldiersRequired,
+            value,
+            minRank,
+            maxRank
+        } = request.query as {
+            name?: string,
+            location?: string,
+            startTime?: Date,
+            endTime?: Date,
+            constraints?: string,
+            soldiersRequired?: number,
+            value?: number,
+            minRank?: number,
+            maxRank?: number
+        }
+
+        let constraintsAsStringArray: string[] | undefined = undefined;
+        let locationAsNumberArray: number[] | undefined = undefined;
+
+        if (constraints) {
+            constraintsAsStringArray = constraints.split(',');
+        }
+
+        if (location) {
+            locationAsNumberArray = location.split(',').map((coordinate) => parseFloat(coordinate));
+        }
+
+        const filteredDuties = await findManyDuties(
+            name,
+            locationAsNumberArray,
+            startTime,
+            endTime,
+            constraintsAsStringArray,
+            soldiersRequired,
+            value,
+            minRank,
+            maxRank
+        );
+
+        await reply.code(200).send({data: filteredDuties});
+        logger.info(`Found duties with parameters. The duties are \n${filteredDuties}`);
+    } catch (error: unknown) {
+        const err = error as Error;
+        await reply.code(500).send({status: err, error: "Internal Server Error. Accessing route /duties via filters failed."});
+        logger.error(`Creating a new duty has failed. Error: ${err.message}`);
+    } finally {
+        logger.info(`Status code for searching duties via filters is ${reply.statusCode}`);
+    }
+}
