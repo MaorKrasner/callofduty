@@ -26,6 +26,11 @@ export const deleteDuty = async (id: string) => {
     return deletionResult;
 };
 
+export const updateDuty = async (id: string, data: Partial<Duty>) => {
+    const updatedResult = await updateOne<Duty & Document>(client, dutiesCollectionName, {_id: new ObjectId(id)}, data as (Duty & Document));
+    return updatedResult;
+};
+
 export const findManyDuties = async (
     name: string | undefined,
     location: number[] | undefined,
