@@ -11,12 +11,12 @@ export const insertDuty = async (duty: Duty) => {
     return insertionResult;
 };
 
-export const findDuty = async (id: ObjectId) => {
-    const duty = await findOne<Duty & Document>(client, dutiesCollectionName, {_id: id});
+export const findDuty = async (id: string) => {
+    const duty = await findOne<Duty & Document>(client, dutiesCollectionName, {_id: new ObjectId(id)});
     return duty as Duty;
 }
 
-export const isDutyExists = async (id: ObjectId) => {
+export const isDutyExists = async (id: string) => {
     const duty = await findDuty(id);
     return duty !== null;
 }
