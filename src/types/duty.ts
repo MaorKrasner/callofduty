@@ -2,7 +2,7 @@ import type { GeoJSON } from "geojson";
 import type { ObjectId } from "mongodb";
 
 export interface Duty {
-    _id: ObjectId;
+    _id?: ObjectId;
     name: string;
     description: string;
     location: GeoJSON;
