@@ -2,10 +2,10 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import type { GeoJSON } from "geojson";
 import { ObjectId } from "mongodb";
 
-import { dutyPostSchema } from "../schemas/dutySchemas.js";
+import { dutyPatchSchema, dutyPostSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
-import { deleteDuty, findDuty, findManyDuties, insertDuty } from "../db/dutyDBFunctions.js";
+import { deleteDuty, findDuty, findManyDuties, insertDuty, updateDuty } from "../db/dutyDBFunctions.js";
 
 export const createDuty = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -155,5 +155,45 @@ export const deleteDutyById = async (request: FastifyRequest, reply: FastifyRepl
         logger.error(`Deleting duty by id has failed. Error: ${err.message}`);
     } finally {
         logger.info(`Status code for deleting duty with id ${id} is ${reply.statusCode}`);
+    }
+};
+
+export const updateDutyById = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+
+    try {
+        const updatedDutyData = request.body as Partial<Duty>;
+
+        const duty = await findDuty(id);
+
+        if (!duty) {
+            return await reply.status(404).send({ error: `Duty not found. There is no duty with id ${id}.` });
+        }
+
+        if (duty.status === "scheduled") {
+            return await reply.code(400).send({ error: `Can't update duties that are scheduled.`});
+        }
+
+        const validateData = dutyPatchSchema.parse(updatedDutyData);
+
+        if (!validateData) {
+            return;
+        }
+
+        const firstUpdateResult = await updateDuty(id, updatedDutyData);
+        const secondUpdateResult = await updateDuty(id, {updatedAt: new Date()});
+
+        if (firstUpdateResult.modifiedCount <= 0 && secondUpdateResult.modifiedCount <= 0) {
+            return;
+        }
+
+        const newDuty = await findDuty(id);
+        return await reply.code(200).send(newDuty);
+    } catch (error: unknown) {
+        const err = error as Error;
+        await reply.code(500).send({status: err, error: `Internal Server Error. Accessing route /duties/${id} (update duty by id) failed.`});
+        logger.error(`Updating duty by id has failed. Error: ${err.message}`);
+    } finally {
+        logger.info(`Status code for updating duty with id ${id} is ${reply.statusCode}`);
     }
 };
