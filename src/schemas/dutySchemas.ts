@@ -1,8 +1,5 @@
 import { z } from "zod"
 
-let startDate: Date;
-let minimumRank: number;
-
 export const dutyPostSchema = z.object({
     name: z.string().min(3).max(50),
     description: z.string().min(1),
