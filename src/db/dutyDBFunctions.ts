@@ -14,12 +14,17 @@ export const insertDuty = async (duty: Duty) => {
 export const findDuty = async (id: string) => {
     const duty = await findOne<Duty & Document>(client, dutiesCollectionName, {_id: new ObjectId(id)});
     return duty as Duty;
-}
+};
 
 export const isDutyExists = async (id: string) => {
     const duty = await findDuty(id);
     return duty !== null;
-}
+};
+
+export const deleteDuty = async (id: string) => {
+    const deletionResult = await deleteOne<Duty & Document>(client, dutiesCollectionName, {_id: new ObjectId(id)});
+    return deletionResult;
+};
 
 export const findManyDuties = async (
     name: string | undefined,
@@ -75,4 +80,4 @@ export const findManyDuties = async (
     const combinedFilter = {$and : filtersArray};
     const duties = await findMany<Duty & Document>(client, dutiesCollectionName, combinedFilter);
     return duties as Duty[];
-}
+};
