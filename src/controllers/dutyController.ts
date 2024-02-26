@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import type { GeoJSON } from "geojson";
 import { ObjectId } from "mongodb";
 
-import { dutyPatchSchema, dutyPostSchema } from "../schemas/dutySchemas.js";
+import { dutyPatchSchema, dutyPostSchema, dutyPutSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
 import { deleteDuty, findDuty, findManyDuties, insertDuty, updateDuty } from "../db/dutyDBFunctions.js";
@@ -207,6 +207,12 @@ export const putConstraintsById = async (request: FastifyRequest, reply: Fastify
 
         if (!duty) {
             return await reply.code(404).send({error: "Duty not found."});
+        }
+
+        const validateData = dutyPutSchema.parse({constraints});
+
+        if (!validateData) {
+            return;
         }
 
         const unDuplicatedConstraints = constraints.filter((constraint) => !duty.constraints.includes(constraint));
