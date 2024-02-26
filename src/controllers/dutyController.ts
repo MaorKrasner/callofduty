@@ -197,3 +197,39 @@ export const updateDutyById = async (request: FastifyRequest, reply: FastifyRepl
         logger.info(`Status code for updating duty with id ${id} is ${reply.statusCode}`);
     }
 };
+
+export const putConstraintsById = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { constraints } = request.body as { constraints: string[] };
+
+    try {
+        const duty = await findDuty(id);
+
+        if (!duty) {
+            return await reply.code(404).send({error: "Duty not found."});
+        }
+
+        const unDuplicatedConstraints = constraints.filter((constraint) => !duty.constraints.includes(constraint));
+
+        const updateDutyData = {} as Partial<Duty>;
+
+        updateDutyData.constraints = unDuplicatedConstraints.concat(duty.constraints);
+
+        const firstUpdateResult = await updateDuty(id, updateDutyData);
+        const secondUpdateResult = await updateDuty(id, {updatedAt: new Date()});
+
+        if (firstUpdateResult.modifiedCount <= 0 && secondUpdateResult.modifiedCount <= 0) {
+            return;
+        }
+
+        const newDuty = await findDuty(id);
+        return await reply.code(200).send(newDuty);
+    } catch (error: unknown) {
+        const err = error as Error;
+        await reply.code(500).send({status: err,
+             error: `Internal Server Error. Accessing route /duties/${id}/constraints (put constraints by id) failed.`});
+        logger.error(`Put constraints into duty by id has failed. Error: ${err.message}`);
+    } finally {
+        logger.info(`Status code for adding constraints to a duty with id ${id} is ${reply.statusCode}`);
+    }
+};
