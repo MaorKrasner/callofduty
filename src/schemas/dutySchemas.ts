@@ -73,3 +73,7 @@ export const dutyPatchSchema = z.object({
 
     return true;
 });
+
+export const dutyPutSchema = z.object({
+    constraints: z.array(z.string())
+}).strict();
