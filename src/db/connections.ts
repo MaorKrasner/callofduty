@@ -5,13 +5,11 @@ import logger from "../logger.js";
 
 const dbUri: string = config.dbUri;
 
-const dbName: string = config.dbName;
-
 let client: MongoClient;
 
 export const connectToDB = async () => {
     try {
-        client = new MongoClient(dbUri || dbName);
+        client = new MongoClient(dbUri);
         await client.connect();
         logger.info("Connected to MongoDB");
     } catch (error: any) {
@@ -29,6 +27,6 @@ export const closeDBConnection = async (client: MongoClient) => {
     return "Connection failed to close"
 };
 
-logger.info(`This is ${dbUri || dbName}`);
+logger.info(`This is ${dbUri}`);
 
 export { client }

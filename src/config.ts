@@ -10,13 +10,7 @@ const config = {
 };
 
 export const validateConfig = () => {
-    let isValid = true;
-    for (const key in config) {
-        if (!key) {
-            isValid = false;
-        }
-    }
-    return isValid;
+    return Object.values(config).every((key) => key !== undefined);
 }
 
 export default config; 

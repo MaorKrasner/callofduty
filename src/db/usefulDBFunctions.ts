@@ -4,16 +4,10 @@ import { deleteOne, findMany, findOne, insertOne, updateOne } from "./operations
 import { type Soldier } from "../types/soldier.js";
 
 const soldiersCollectionName = "soldiers";
-const dutiesCollectionName = "duties";
 
 export const findSoldier = async (id: string) => {
     const soldier = await findOne<Soldier & Document>(client, soldiersCollectionName, {_id : id});
     return soldier as Soldier;
-}
-
-export const isSoldierExists = async (id: string) => {
-    const soldier = await findSoldier(id);
-    return soldier !== null;
 }
 
 export const insertSoldier = async (soldier: Soldier) => {
@@ -22,28 +16,31 @@ export const insertSoldier = async (soldier: Soldier) => {
 }
 
 export const findManySoldiers = async (
-    name: string | undefined,
-    limitations: string[] | undefined,
-    rankName: string | undefined,
-    rankValue: number | undefined
-    ) => {
+    filter: {
+        name?: string,
+        limitations?: string[],
+        rankName?: string,
+        rankValue?: number
+    }
+) => {
     
     const filtersArray: any = [];
 
-    if (name) {
-        filtersArray.push({name: name});
+    if (filter.name) {
+        filtersArray.push({name: filter.name});
     }
 
-    if (limitations) {
-        filtersArray.push({limitations: {$all: limitations}});
+    if (filter.limitations) {
+        filtersArray.push({limitations: {$all: filter.limitations}});
     }
 
-    if (rankName) {
-        filtersArray.push({'rank.name': rankName});
+    if (filter.rankName) {
+        filtersArray.push({'rank.name': filter.rankName});
     }
 
-    if (rankValue) {
-        filtersArray.push({'rank.value': rankValue});
+    // Could do if (filter.rankValue) but then the case of '0' won't count (if (0)). This is the solution for all cases from 0 to 6.
+    if (filter.hasOwnProperty('rankValue')) {
+        filtersArray.push({'rank.value': filter.rankValue});
     }
 
     const combinedFilter = { $and: filtersArray };

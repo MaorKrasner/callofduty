@@ -18,11 +18,15 @@ const createServer = async() => {
 const start = async (server: FastifyInstance) => {
     try {
         await server.listen({ port: Number(config.serverPort) });
-        logger.info(`Server is running on http://localhost:${config.serverPort}`);
+        logger.info(`Server is running on ${config.serverPort}`);
     } catch (err) {
         server.log.error(err);
         process.exit(1);
     }
 };
 
-export { createServer, start };
+const close = async (server: FastifyInstance) => {
+    await server.close();
+}
+
+export { createServer, start, close };
