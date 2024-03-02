@@ -67,3 +67,15 @@ export const updateMany = async <P extends Document = Document>(
     .collection<P>(collectionName)
     .updateMany(filter, { $set: update });
 };
+
+export const aggregate = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  filter: any
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .aggregate()
+    .toArray();
+};
