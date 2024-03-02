@@ -1,8 +1,10 @@
 import { fastify, FastifyInstance } from "fastify";
 
 import config from "./config.js";
-import logger from "./logger.js";
+import dutyRoutes from "./routes/dutyRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
+import justiceBoardRoutes from "./routes/justiceBoardRoutes.js";
+import logger from "./logger.js";
 import soldierRoutes from "./routes/soldierRoutes.js";
 
 const createServer = async () => {
@@ -11,6 +13,10 @@ const createServer = async () => {
   healthRoutes(server);
 
   await server.register(soldierRoutes);
+
+  await server.register(dutyRoutes);
+
+  await server.register(justiceBoardRoutes);
 
   return server;
 };
