@@ -1,9 +1,10 @@
 import { FastifyInstance } from "fastify";
 
-import { aggregateJusticeBoard } from "../db/justiceBoardFunctions.js";
+import { getJusticeBoard, getJusticeBoardById } from "../controllers/justiceBoardController.js";
 
 const justiceBoardRoutes = async (server: FastifyInstance) => {
-    server.get("/justice-board", aggregateJusticeBoard);
+    server.get("/justice-board", getJusticeBoard);
+    server.get("/justice-board/:id", getJusticeBoard);
 }
 
 export default justiceBoardRoutes;
