@@ -71,11 +71,11 @@ export const updateMany = async <P extends Document = Document>(
 export const aggregate = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,
-  filter: any
+  filter: Filter<P>[]
 ) => {
   return await client
     .db(dbName)
     .collection<P>(collectionName)
-    .aggregate()
+    .aggregate(filter)
     .toArray();
 };
