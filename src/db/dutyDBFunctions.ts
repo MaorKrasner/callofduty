@@ -61,7 +61,7 @@ export const findManyDuties = async (filter: {
   const filtersArray: any = [];
 
   if (filter.name) {
-    filtersArray.push({ name: name });
+    filtersArray.push({ name: filter.name });
   }
 
   if (filter.location) {
