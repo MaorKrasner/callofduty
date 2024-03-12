@@ -24,7 +24,6 @@ const start = async (server: FastifyInstance) => {
     logger.info(`Server is running on ${config.serverPort}`);
   } catch (err) {
     server.log.error(err);
-    process.exit(1);
   }
 };
 
