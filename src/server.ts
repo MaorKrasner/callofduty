@@ -6,7 +6,6 @@ import healthRoutes from "./routes/healthRoutes.js";
 import justiceBoardRoutes from "./routes/justiceBoardRoutes.js";
 import logger from "./logger.js";
 import soldierRoutes from "./routes/soldierRoutes.js";
-import dutyRoutes from "./routes/dutyRoutes.js";
 
 const createServer = async () => {
   const server = fastify({ logger: true });
@@ -16,6 +15,8 @@ const createServer = async () => {
   await server.register(soldierRoutes);
 
   await server.register(dutyRoutes);
+
+  await server.register(justiceBoardRoutes);
 
   return server;
 };
