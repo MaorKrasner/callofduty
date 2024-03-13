@@ -49,7 +49,11 @@ export const findManySoldiers = async (filter: {
   }
 
   // Could do if (filter.rankValue) but then the case of '0' won't count (if (0)). This is the solution for all cases from 0 to 6.
-  if (filter.hasOwnProperty("rankValue")) {
+  if (
+    filter.rankValue?.toString() &&
+    filter.rankValue >= 0 &&
+    filter.rankValue <= 6
+  ) {
     filtersArray.push({ "rank.value": filter.rankValue });
   }
 

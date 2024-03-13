@@ -123,10 +123,10 @@ export const getDutiesByFilters = async (
 
   const filter = {
     name,
-    locationAsNumberArray,
+    location: locationAsNumberArray,
     startTime,
     endTime,
-    constraintsAsStringArray,
+    constraints: constraintsAsStringArray,
     soldiersRequired,
     value,
     minRank,

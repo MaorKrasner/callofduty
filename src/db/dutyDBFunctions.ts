@@ -9,6 +9,7 @@ import {
   updateOne,
 } from "./operations.js";
 import { type Duty } from "../types/duty.js";
+import logger from "../logger.js";
 
 const dutiesCollectionName = "duties";
 
@@ -64,18 +65,19 @@ export const findManyDuties = async (filter: {
     filtersArray.push({ name: filter.name });
   }
 
+  logger.info(`Filter.location : ${filter.location}`);
   if (filter.location) {
-    filtersArray.push({ "location.coordinates": { $all: location } });
+    filtersArray.push({
+      "location.coordinates": { $all: filter.location },
+    });
   }
 
   if (filter.startTime) {
-    const timeAsString = new Date(filter.startTime).toISOString();
-    filtersArray.push({ startTime: timeAsString });
+    filtersArray.push({ startTime: filter.startTime });
   }
 
   if (filter.endTime) {
-    const timeAsString = new Date(filter.endTime).toISOString();
-    filtersArray.push({ endTime: timeAsString });
+    filtersArray.push({ endTime: filter.endTime });
   }
 
   if (filter.constraints) {
