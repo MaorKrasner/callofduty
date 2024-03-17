@@ -7,27 +7,19 @@ import {
   findSoldier,
   insertSoldier,
   updateSoldier,
-} from "../db/soldierDBFunctions.js";
+} from "../collections/soldier.js";
 import { type Soldier } from "../types/soldier.js";
 import {
   soldierPostSchema,
   soldierPatchSchema,
 } from "../schemas/soldierSchemas.js";
 
-const createSoldierDocument = (
-  id: string,
-  name: string,
-  rank: {
-    name: string;
-    value: number;
-  },
-  limitations: string[]
-): Soldier => {
+const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
-    _id: id,
-    name: name,
-    rank: rank,
-    limitations: limitations,
+    _id: soldier._id!,
+    name: soldier.name!,
+    rank: soldier.rank!,
+    limitations: soldier.limitations!,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -43,18 +35,17 @@ export const createSoldier = async (
 
   if (soldier) {
     return await reply
-      .code(400)
+      .code(409)
       .send(`Soldier with id ${soldierData._id} already exists.`);
   }
 
   soldierPostSchema.parse(soldierData);
 
-  const soldierToInsert = createSoldierDocument(
-    soldierData._id,
-    soldierData.name,
-    soldierData.rank,
-    soldierData.limitations.map((limitation) => limitation.toLowerCase())
+  soldierData.limitations = soldierData.limitations.map((limitation) =>
+    limitation.toLowerCase()
   );
+
+  const soldierToInsert = createSoldierDocument(soldierData);
 
   const insertionResult = await insertSoldier(soldierToInsert);
 
@@ -85,7 +76,7 @@ export const getSoldiersByFilters = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const { name, limitations, rankValue, rankName } = request.query as {
+  const { limitations, rankValue, ...filter } = request.query as {
     name?: string;
     limitations?: string;
     rankValue?: number;
@@ -98,14 +89,11 @@ export const getSoldiersByFilters = async (
     limitationsAsStringArray = limitations.split(",");
   }
 
-  const filter = {
-    name,
+  const filteredSoldiers = await findManySoldiers({
+    ...filter,
     limitations: limitationsAsStringArray,
-    rankName,
     rankValue: parseInt(String(rankValue)),
-  };
-
-  const filteredSoldiers = await findManySoldiers(filter);
+  });
 
   await reply.code(200).send({ data: filteredSoldiers });
   logger.info(
@@ -148,16 +136,15 @@ export const updateSoldierById = async (
 
   soldierPatchSchema.parse(updatedSoldierData);
 
-  const firstUpdateResult = await updateSoldier(id, updatedSoldierData);
-  const secondUpdateResult = await updateSoldier(id, { updatedAt: new Date() });
+  updatedSoldierData.updatedAt = new Date();
 
-  if (
-    firstUpdateResult.modifiedCount <= 0 &&
-    secondUpdateResult.modifiedCount <= 0
-  ) {
-    return;
+  const newSoldier = await updateSoldier(id, updatedSoldierData);
+
+  if (!newSoldier) {
+    return await reply
+      .code(409)
+      .send("Something wrong happened during the update.");
   }
 
-  const newSoldier = await findSoldier(id);
   return await reply.status(200).send(newSoldier);
 };

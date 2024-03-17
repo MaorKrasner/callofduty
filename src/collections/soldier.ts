@@ -1,11 +1,11 @@
-import { client } from "./connections.js";
+import { client } from "../db/connections.js";
 import {
   deleteOne,
   findMany,
   findOne,
   insertOne,
   updateOne,
-} from "./operations.js";
+} from "../db/operations.js";
 import { type Soldier } from "../types/soldier.js";
 
 const soldiersCollectionName = "soldiers";
@@ -82,5 +82,6 @@ export const updateSoldier = async (id: string, data: Partial<Soldier>) => {
     { _id: id },
     data as Soldier & Document
   );
-  return updateResult;
+
+  return updateResult.modifiedCount > 0 ? await findSoldier(id) : undefined;
 };

@@ -2,51 +2,18 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { initialize } from "../../src/app.js";
 import { close } from "../../src/server.js";
+import {
+  workingPostPayload,
+  notWorkingPostPayloads,
+  workingPatchPayload,
+  notWorkingPatchPayloads,
+} from "../data/soldier.js";
 
 const server = await initialize();
 
 afterAll(async () => {
   await close(server);
 });
-
-const workingPostPayload = {
-  _id: "5789483",
-  name: "Moby Brown",
-  rank: { name: "sergeant", value: 2 },
-  limitations: ["beard", "hatash7", "hair", "standing", "no work after 6pm"],
-};
-
-const notWorkingPostPayloads = [
-  {
-    _id: "1234568",
-    rank: { name: "captain", value: 4 },
-    limitations: ["beard", "hatash7"],
-  },
-
-  {
-    _id: "1234567",
-    rank: { name: "corporal", value: 1 },
-    limitations: ["beard", "hatash7"],
-  },
-];
-
-const workingPatchPayload = {
-  rank: { name: "colonel", value: 6 },
-  limitations: ["beard", "hair", "hatash7", "standing", "sun"],
-};
-
-const notWorkingPatchPayloads = [
-  {
-    _id: "2345678",
-    rank: { name: "colonel", value: 7 },
-    limitations: ["beard", "hair", "hatash7", "standing", "sun"],
-  },
-
-  {
-    rank: { name: "colonel", value: 7 },
-    limitations: ["beard", "hair", "hatash7", "standing", "sun"],
-  },
-];
 
 describe("Soldier routes", () => {
   describe("GET routes for soldiers", () => {

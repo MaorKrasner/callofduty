@@ -1,13 +1,13 @@
 import { ObjectId } from "mongodb";
 
-import { client } from "./connections.js";
+import { client } from "../db/connections.js";
 import {
   deleteOne,
   findMany,
   findOne,
   insertOne,
   updateOne,
-} from "./operations.js";
+} from "../db/operations.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
 
@@ -45,7 +45,8 @@ export const updateDuty = async (id: string, data: Partial<Duty>) => {
     { _id: new ObjectId(id) },
     data as Duty & Document
   );
-  return updatedResult;
+
+  return updatedResult.modifiedCount > 0 ? await findDuty(id) : undefined;
 };
 
 export const findManyDuties = async (filter: {
@@ -109,4 +110,16 @@ export const findManyDuties = async (filter: {
     combinedFilter
   );
   return duties as Duty[];
+};
+
+export const addConstraintsToDuty = async (
+  id: string,
+  constraints: Partial<Duty>
+) => {
+  const updateResult = await updateOne<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    { _id: new ObjectId(id) },
+    constraints as Duty & Document
+  );
 };

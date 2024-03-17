@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import type { GeoJSON } from "geojson";
 
 import {
   dutyPatchSchema,
@@ -14,31 +13,20 @@ import {
   findManyDuties,
   insertDuty,
   updateDuty,
-} from "../db/dutyDBFunctions.js";
+} from "../collections/duty.js";
 
-const createDutyDocument = (
-  name: string,
-  description: string,
-  location: GeoJSON,
-  startTime: Date,
-  endTime: Date,
-  minRank: number,
-  maxRank: number,
-  constraints: string[],
-  soldiersRequired: number,
-  value: number
-): Duty => {
+const createDutyDocument = (duty: Partial<Duty>): Duty => {
   return {
-    name: name,
-    description: description,
-    location: location,
-    startTime: startTime,
-    endTime: endTime,
-    minRank: minRank,
-    maxRank: maxRank,
-    constraints: constraints,
-    soldiersRequired: soldiersRequired,
-    value: value,
+    name: duty.name!,
+    description: duty.description!,
+    location: duty.location!,
+    startTime: duty.startTime!,
+    endTime: duty.endTime!,
+    minRank: duty.minRank!,
+    maxRank: duty.maxRank!,
+    constraints: duty.constraints!,
+    soldiersRequired: duty.soldiersRequired!,
+    value: duty.value!,
     soldiers: [],
     status: "unscheduled",
     statusHistory: [
@@ -56,47 +44,26 @@ export const createDuty = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const dutyData = request.body as Duty;
+  const dutyData = request.body as Partial<Duty>;
 
   dutyPostSchema.parse(dutyData);
 
-  const duty = createDutyDocument(
-    dutyData.name,
-    dutyData.description,
-    dutyData.location,
-    dutyData.startTime,
-    dutyData.endTime,
-    dutyData.minRank,
-    dutyData.maxRank,
-    dutyData.constraints,
-    dutyData.soldiersRequired,
-    dutyData.value
-  );
+  const duty = createDutyDocument(dutyData);
 
   const insertionResult = await insertDuty(duty);
 
-  if (insertionResult.insertedId) {
-    await reply.code(201).send(duty);
-  } else {
-    await reply.code(400).send({ error: `Couldn't insert duty.` });
+  if (!insertionResult.insertedId) {
+    return await reply.code(409).send({ error: `Couldn't insert duty.` });
   }
+
+  return await reply.code(201).send(duty);
 };
 
 export const getDutiesByFilters = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const {
-    name,
-    location,
-    startTime,
-    endTime,
-    constraints,
-    soldiersRequired,
-    value,
-    minRank,
-    maxRank,
-  } = request.query as {
+  const { location, constraints, ...filter } = request.query as {
     name?: string;
     location?: string;
     startTime?: Date;
@@ -121,19 +88,11 @@ export const getDutiesByFilters = async (
       .map((coordinate) => parseFloat(coordinate));
   }
 
-  const filter = {
-    name,
-    location: locationAsNumberArray,
-    startTime,
-    endTime,
+  const filteredDuties = await findManyDuties({
+    ...filter,
     constraints: constraintsAsStringArray,
-    soldiersRequired,
-    value,
-    minRank,
-    maxRank,
-  };
-
-  const filteredDuties = await findManyDuties(filter);
+    location: locationAsNumberArray,
+  });
 
   await reply.code(200).send({ data: filteredDuties });
   logger.info(
@@ -166,18 +125,17 @@ export const deleteDutyById = async (
 
   if (duty) {
     if (duty.status === "scheduled") {
-      await reply.code(400).send({ error: "Cannot delete scheduled duties." });
-    } else {
-      const deletionResult = await deleteDuty(id);
-      if (deletionResult.deletedCount > 0) {
-        await reply.code(204).send({ message: "Duty deleted." });
-        logger.info(`Duty with id ${id} delete successfully.`);
-      } else {
-        await reply.code(400).send({ error: "The deletion has failed." });
-      }
+      return await reply
+        .code(409)
+        .send({ error: "Cannot delete scheduled duties." });
     }
+    const deletionResult = await deleteDuty(id);
+    if (deletionResult.deletedCount > 0) {
+      return await reply.code(204).send({ message: "Duty deleted." });
+    }
+    return await reply.code(409).send({ error: "The deletion has failed." });
   } else {
-    await reply.code(404).send({
+    return await reply.code(404).send({
       error:
         "Duty not found. Check the length of the id you passed and the id itself.",
     });
@@ -201,23 +159,20 @@ export const updateDutyById = async (
 
   if (duty.status === "scheduled") {
     return await reply
-      .code(400)
+      .code(409)
       .send({ error: `Can't update duties that are scheduled.` });
   }
 
   dutyPatchSchema.parse(updatedDutyData);
 
-  const firstUpdateResult = await updateDuty(id, updatedDutyData);
-  const secondUpdateResult = await updateDuty(id, { updatedAt: new Date() });
+  updatedDutyData.updatedAt = new Date();
 
-  if (
-    firstUpdateResult.modifiedCount <= 0 &&
-    secondUpdateResult.modifiedCount <= 0
-  ) {
-    return await reply.code(400).send({ error: "Couldn't update the duty." });
+  const newDuty = await updateDuty(id, updatedDutyData);
+
+  if (!newDuty) {
+    return await reply.code(409).send({ error: "Couldn't update the duty." });
   }
 
-  const newDuty = await findDuty(id);
   return await reply.code(200).send(newDuty);
 };
 
@@ -243,17 +198,15 @@ export const putConstraintsById = async (
   const updateDutyData = {} as Partial<Duty>;
 
   updateDutyData.constraints = unDuplicatedConstraints.concat(duty.constraints);
+  updateDutyData.updatedAt = new Date();
 
-  const firstUpdateResult = await updateDuty(id, updateDutyData);
-  const secondUpdateResult = await updateDuty(id, { updatedAt: new Date() });
+  const newDuty = await updateDuty(id, updateDutyData);
 
-  if (
-    firstUpdateResult.modifiedCount <= 0 &&
-    secondUpdateResult.modifiedCount <= 0
-  ) {
-    return;
+  if (!newDuty) {
+    return await reply
+      .code(409)
+      .send({ error: "Something wrong happened during the update." });
   }
 
-  const newDuty = await findDuty(id);
   return await reply.code(200).send(newDuty);
 };

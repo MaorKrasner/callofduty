@@ -9,7 +9,7 @@ export const insertOne = async <P extends Document = Document>(
   collectionName: string,
   data: P
 ) => {
-  return await client
+  return client
     .db(dbName)
     .collection<P>(collectionName)
     .insertOne(data as OptionalUnlessRequiredId<P>);
@@ -20,10 +20,7 @@ export const deleteOne = async <P extends Document = Document>(
   collectionName: string,
   filter: Filter<P>
 ) => {
-  return await client
-    .db(dbName)
-    .collection<P>(collectionName)
-    .deleteOne(filter);
+  return client.db(dbName).collection<P>(collectionName).deleteOne(filter);
 };
 
 export const findOne = async <P extends Document = Document>(
@@ -31,7 +28,7 @@ export const findOne = async <P extends Document = Document>(
   collectionName: string,
   filter: Filter<P>
 ) => {
-  return await client.db(dbName).collection<P>(collectionName).findOne(filter);
+  return client.db(dbName).collection<P>(collectionName).findOne(filter);
 };
 
 export const findMany = async <P extends Document = Document>(
@@ -39,11 +36,7 @@ export const findMany = async <P extends Document = Document>(
   collectionName: string,
   filter: Filter<P>
 ) => {
-  return await client
-    .db(dbName)
-    .collection<P>(collectionName)
-    .find(filter)
-    .toArray();
+  return client.db(dbName).collection<P>(collectionName).find(filter).toArray();
 };
 
 export const updateOne = async <P extends Document = Document>(
@@ -52,10 +45,20 @@ export const updateOne = async <P extends Document = Document>(
   filter: Filter<P>,
   update: P
 ) => {
-  return await client
+  return client
     .db(dbName)
     .collection<P>(collectionName)
     .updateOne(filter, { $set: update });
+};
+
+export const addToSetUpdate = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  filter: Filter<P>,
+  update: P
+) => {
+  return client.db(dbName).collection<P>(collectionName);
+  // .updateOne(filter, { $addToSet: update });
 };
 
 export const updateMany = async <P extends Document = Document>(
@@ -64,7 +67,7 @@ export const updateMany = async <P extends Document = Document>(
   filter: Filter<P>,
   update: P
 ) => {
-  return await client
+  return client
     .db(dbName)
     .collection<P>(collectionName)
     .updateMany(filter, { $set: update });

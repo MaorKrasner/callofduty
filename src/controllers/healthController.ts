@@ -13,7 +13,7 @@ export const dbHealthCheck = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  if (client) {
+  if (await client.db("admin").command({ ping: 1 })) {
     await reply.code(200).send({ status: "Connected to db" });
   } else {
     await reply.code(400).send({ error: "Not connected to db" });

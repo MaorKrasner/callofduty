@@ -23,7 +23,7 @@ const start = async (server: FastifyInstance) => {
     await server.listen({ port: Number(config.serverPort) });
     logger.info(`Server is running on ${config.serverPort}`);
   } catch (err) {
-    server.log.error(err);
+    logger.error(err);
   }
 };
 
