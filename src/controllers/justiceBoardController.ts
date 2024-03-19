@@ -3,9 +3,10 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import {
   aggregateJusticeBoard,
   aggregateJusticeBoardById,
-} from "../db/justiceBoardFunctions.js";
-import { findSoldier } from "../db/soldierDBFunctions.js";
+} from "../collections/justice-board.js";
+import { findSoldier } from "../collections/soldier.js";
 import type { justiceBoardElement } from "../types/justice-board.js";
+import logger from "../logger.js";
 
 export const getJusticeBoard = async (
   request: FastifyRequest,
