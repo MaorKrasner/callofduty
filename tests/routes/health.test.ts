@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as HttpStatus from "http-status-codes";
 
 import { initialize } from "../../src/app.js";
 
@@ -12,7 +13,7 @@ describe("Health routes", () => {
         url: "/health",
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toStrictEqual({ status: "ok" });
     });
 
@@ -22,7 +23,7 @@ describe("Health routes", () => {
         url: "/health",
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toStrictEqual({ status: "ok" });
     });
   });
