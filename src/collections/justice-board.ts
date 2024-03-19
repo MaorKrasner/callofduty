@@ -1,43 +1,42 @@
-import { client } from "./connections.js";
-import type { Duty } from "../types/duty.js";
-import { aggregate } from "./operations.js";
+import { client } from "../db/connections.js";
+import { aggregate } from "../db/operations.js";
 import type { justiceBoardElement } from "../types/justice-board.js";
 
-const dutiesCollectionName = "duties";
+const soldiersCollectionName = "soldiers";
 
 export const aggregateJusticeBoard = async () => {
   const filter: Object[] = [
     {
-      $unwind: "$soldiers",
+      $lookup: {
+        from: "duties",
+        localField: "_id",
+        foreignField: "soldiers",
+        as: "duties",
+      },
+    },
+    {
+      $unwind: {
+        path: "$duties",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $group: {
-        _id: "$soldiers",
-        score: { $sum: "$value" },
+        _id: "$_id",
+        score: { $sum: { $ifNull: ["$duties.value", 0] } },
       },
-    },
-    {
-      $lookup: {
-        from: "soldiers",
-        localField: "_id",
-        foreignField: "_id",
-        as: "soldierDetails",
-      },
-    },
-    {
-      $unwind: "$soldierDetails",
     },
     {
       $project: {
-        _id: "$soldierDetails._id",
-        score: "$score",
+        _id: 1,
+        score: 1,
       },
     },
   ];
 
   const aggregationArray = await aggregate<justiceBoardElement & Document>(
     client,
-    dutiesCollectionName,
+    soldiersCollectionName,
     filter
   );
 
@@ -49,5 +48,5 @@ export const aggregateJusticeBoardById = async (id: string) => {
   const idArray = aggregationArray.map((element) => element._id);
   const scoreArray = aggregationArray.map((element) => element.score);
 
-  return !idArray.includes(id) ? 0 : scoreArray[idArray.indexOf(id)];
+  return scoreArray[idArray.indexOf(id)];
 };
