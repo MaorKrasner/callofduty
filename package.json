@@ -29,6 +29,7 @@
     "dotenv": "^16.4.1",
     "fastify": "^4.26.0",
     "geojson": "^0.5.0",
+    "http-status-codes": "^2.3.0",
     "mongodb": "^6.3.0",
     "zod": "^3.22.4"
   },
