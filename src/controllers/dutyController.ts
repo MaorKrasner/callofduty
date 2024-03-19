@@ -1,13 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 
-import {
-  dutyPatchSchema,
-  dutyPostSchema,
-  dutyPutSchema,
-} from "../schemas/dutySchemas.js";
+import { dutyPatchSchema, dutyPostSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
 import logger from "../logger.js";
 import {
+  addConstraintsToDuty,
   deleteDuty,
   findDuty,
   findManyDuties,
@@ -15,7 +12,7 @@ import {
   updateDuty,
 } from "../collections/duty.js";
 
-const createDutyDocument = (duty: Partial<Duty>): Duty => {
+export const createDutyDocument = (duty: Partial<Duty>): Duty => {
   return {
     name: duty.name!,
     description: duty.description!,
@@ -165,8 +162,6 @@ export const updateDutyById = async (
 
   dutyPatchSchema.parse(updatedDutyData);
 
-  updatedDutyData.updatedAt = new Date();
-
   const newDuty = await updateDuty(id, updatedDutyData);
 
   if (!newDuty) {
@@ -183,24 +178,11 @@ export const putConstraintsById = async (
   const { id } = request.params as { id: string };
   const { constraints } = request.body as { constraints: string[] };
 
-  const duty = await findDuty(id);
-
-  if (!duty) {
+  if (!(await findDuty(id))) {
     return await reply.code(404).send({ error: "Duty not found." });
   }
 
-  dutyPutSchema.parse({ constraints });
-
-  const unDuplicatedConstraints = constraints.filter(
-    (constraint) => !duty.constraints.includes(constraint)
-  );
-
-  const updateDutyData = {} as Partial<Duty>;
-
-  updateDutyData.constraints = unDuplicatedConstraints.concat(duty.constraints);
-  updateDutyData.updatedAt = new Date();
-
-  const newDuty = await updateDuty(id, updateDutyData);
+  const newDuty = await addConstraintsToDuty(id, constraints);
 
   if (!newDuty) {
     return await reply

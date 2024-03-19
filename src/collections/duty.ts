@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, UpdateFilter } from "mongodb";
 
 import { client } from "../db/connections.js";
 import {
@@ -43,7 +43,9 @@ export const updateDuty = async (id: string, data: Partial<Duty>) => {
     client,
     dutiesCollectionName,
     { _id: new ObjectId(id) },
-    data as Duty & Document
+    { $set: { ...data, updatedAt: new Date() } } as UpdateFilter<
+      Duty & Document
+    >
   );
 
   return updatedResult.modifiedCount > 0 ? await findDuty(id) : undefined;
@@ -114,12 +116,17 @@ export const findManyDuties = async (filter: {
 
 export const addConstraintsToDuty = async (
   id: string,
-  constraints: Partial<Duty>
+  constraintsToAdd: string[]
 ) => {
-  const updateResult = await updateOne<Duty & Document>(
+  const updatedResult = await updateOne<Duty & Document>(
     client,
     dutiesCollectionName,
     { _id: new ObjectId(id) },
-    constraints as Duty & Document
+    {
+      $addToSet: { constraints: { $each: constraintsToAdd } },
+      $set: { updatedAt: new Date() },
+    } as UpdateFilter<Duty & Document>
   );
+
+  return updatedResult.modifiedCount > 0 ? await findDuty(id) : undefined;
 };

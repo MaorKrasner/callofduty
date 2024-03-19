@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { initialize } from "../../src/app.js";
-import { initialize } from "../../src/app.js";
 
 const server = await initialize();
 
@@ -28,4 +27,3 @@ describe("Health routes", () => {
     });
   });
 });
-

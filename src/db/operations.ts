@@ -1,4 +1,9 @@
-import { Filter, MongoClient, OptionalUnlessRequiredId } from "mongodb";
+import {
+  Filter,
+  MongoClient,
+  OptionalUnlessRequiredId,
+  UpdateFilter,
+} from "mongodb";
 
 import config from "../config.js";
 
@@ -43,22 +48,12 @@ export const updateOne = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,
   filter: Filter<P>,
-  update: P
+  update: UpdateFilter<P>
 ) => {
   return client
     .db(dbName)
     .collection<P>(collectionName)
-    .updateOne(filter, { $set: update });
-};
-
-export const addToSetUpdate = async <P extends Document = Document>(
-  client: MongoClient,
-  collectionName: string,
-  filter: Filter<P>,
-  update: P
-) => {
-  return client.db(dbName).collection<P>(collectionName);
-  // .updateOne(filter, { $addToSet: update });
+    .updateOne(filter, update);
 };
 
 export const updateMany = async <P extends Document = Document>(

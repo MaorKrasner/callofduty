@@ -1,3 +1,4 @@
+import { UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
   deleteOne,
@@ -80,7 +81,9 @@ export const updateSoldier = async (id: string, data: Partial<Soldier>) => {
     client,
     soldiersCollectionName,
     { _id: id },
-    data as Soldier & Document
+    { $set: { ...data, updatedAt: new Date() } } as UpdateFilter<
+      Soldier & Document
+    >
   );
 
   return updateResult.modifiedCount > 0 ? await findSoldier(id) : undefined;

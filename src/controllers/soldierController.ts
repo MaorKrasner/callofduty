@@ -14,7 +14,7 @@ import {
   soldierPatchSchema,
 } from "../schemas/soldierSchemas.js";
 
-const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
+export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
     _id: soldier._id!,
     name: soldier.name!,
@@ -135,8 +135,6 @@ export const updateSoldierById = async (
   }
 
   soldierPatchSchema.parse(updatedSoldierData);
-
-  updatedSoldierData.updatedAt = new Date();
 
   const newSoldier = await updateSoldier(id, updatedSoldierData);
 

@@ -1,41 +1,109 @@
 import { ObjectId } from "mongodb";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 
 import { initialize } from "../../src/app.js";
+import { close } from "../../src/server.js";
 import { client } from "../../src/db/connections.js";
 import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
-import { postWorkingPayload, putPayload, patchPayload } from "../data/duty.js";
-
-const server = await initialize();
+import {
+  notFoundDutyId,
+  postWorkingPayload,
+  putPayload,
+  patchPayload,
+  secondTestPostWorkingPayload,
+  testPostWorkingPayload,
+} from "../testData/duty.js";
+import {
+  deleteDuty,
+  findDuty,
+  findManyDuties,
+  updateDuty,
+} from "../../src/collections/duty.js";
+import { createDutyDocument } from "../../src/controllers/dutyController.js";
+import { insertDuty } from "../../src/collections/duty.js";
 
 let attackingIranDuty: Duty;
 let attackingIranId: ObjectId;
+
+let testDuty: Duty;
+let testDutyId: ObjectId;
+
+let secondTestDuty: Duty;
+let secondTestDutyId: ObjectId;
+
+const server = await initialize();
+
+beforeAll(async () => {
+  attackingIranDuty = createDutyDocument(postWorkingPayload);
+  await insertDuty(attackingIranDuty);
+  const IranDuty = (await findOne<Duty & Document>(client, "duties", {
+    name: attackingIranDuty.name,
+  })) as Duty;
+  attackingIranId = IranDuty._id!;
+
+  testDuty = createDutyDocument(testPostWorkingPayload);
+  await insertDuty(testDuty);
+  const testDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
+    name: testDuty.name,
+  })) as Duty;
+  testDutyId = testDutyFromDb._id!;
+
+  const updateData = { status: "scheduled" } as Partial<Duty>;
+  await updateDuty(testDutyId.toString(), updateData);
+
+  secondTestDuty = createDutyDocument(secondTestPostWorkingPayload);
+  await insertDuty(secondTestDuty);
+  const secondTestDutyFromDb = (await findOne<Duty & Document>(
+    client,
+    "duties",
+    {
+      name: secondTestDuty.name,
+    }
+  )) as Duty;
+  secondTestDutyId = secondTestDutyFromDb._id!;
+});
+
+afterAll(async () => {
+  await deleteDuty(testDutyId.toString());
+  await deleteDuty(secondTestDutyId.toString());
+
+  const testDutyToDelete = await findManyDuties({
+    name: testPostWorkingPayload.name,
+  });
+  const idToDelete = testDutyToDelete[0]._id!;
+
+  await deleteDuty(idToDelete.toString());
+
+  await close(server);
+});
 
 describe("Duty routes", () => {
   describe("GET routes for duties", () => {
     it("Should return 200 when trying to get existing duties.", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/duties?name=attacking northen terror organizations",
+        url: `/duties?name=${attackingIranDuty.name}`,
       });
 
       expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty("data");
     });
 
     it("Should return 200 when trying to find duty by id.", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/duties/65db36be5af6c332cc1e519b",
+        url: `/duties/${attackingIranId}`,
       });
 
       expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty("data");
     });
 
     it("Should return 404 when trying to find duty by id.", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/duties/66db36be5df6c332cc1e527e",
+        url: `/duties/${notFoundDutyId}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -47,40 +115,39 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "POST",
         url: "/duties",
-        payload: postWorkingPayload,
+        payload: testPostWorkingPayload,
       });
 
       expect(response.statusCode).toBe(201);
+      expect(response.json()).toHaveProperty("createdAt");
+      expect(response.json()).toHaveProperty("updatedAt");
     });
   });
 
   describe("DELETE routes for duties", () => {
     it("Should return 204 when trying to delete duty.", async () => {
-      attackingIranDuty = (await findOne<Duty & Document>(client, "duties", {
-        name: "attacking iran",
-      })) as Duty;
-      attackingIranId = attackingIranDuty._id!;
       const response = await server.inject({
         method: "DELETE",
         url: `/duties/${attackingIranId}`,
       });
 
       expect(response.statusCode).toBe(204);
+      expect(await findDuty(attackingIranId.toString())).toBe(null);
     });
 
-    it("Should return 400 when trying to delete a duty.", async () => {
+    it("Should return 409 when trying to delete a duty.", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: "/duties/65db36be5af6c332cc1e519b",
+        url: `/duties/${testDutyId}`,
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(409);
     });
 
     it("Should return 404 when trying to delete a duty.", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: "/duties/77da35be5af6c458cc1e523d",
+        url: `/duties/${notFoundDutyId}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -89,29 +156,36 @@ describe("Duty routes", () => {
 
   describe("PATCH routes for duties", () => {
     it("Should return 200 when trying to update a duty.", async () => {
+      const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
+
       const response = await server.inject({
         method: "PATCH",
-        url: "/duties/65dc9d72f40678a9e92ad2f8",
+        url: `/duties/${secondTestDutyId}`,
         payload: patchPayload,
       });
+
+      const dutyAfterUpdate = response.json() as Duty;
 
       expect(response.statusCode).toBe(200);
+      expect(dutyAfterUpdate.soldiersRequired).not.toStrictEqual(
+        dutyBeforeUpdate.soldiersRequired
+      );
     });
 
-    it("Should return 400 when trying to update a duty (scheduled).", async () => {
+    it("Should return 409 when trying to update a duty (scheduled).", async () => {
       const response = await server.inject({
         method: "PATCH",
-        url: "/duties/65db36be5af6c332cc1e519b",
+        url: `/duties/${testDutyId}`,
         payload: patchPayload,
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(409);
     });
 
     it("Should return 404 when trying to update duty.", async () => {
       const response = await server.inject({
         method: "PATCH",
-        url: "/duties/77da35be5af6c458cc1e523d",
+        url: `/duties/${notFoundDutyId}`,
         payload: patchPayload,
       });
 
@@ -121,19 +195,26 @@ describe("Duty routes", () => {
 
   describe("PUT routes for duties", () => {
     it("Should return 200 when adding new constraints to a duty.", async () => {
+      const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
+
       const response = await server.inject({
         method: "PUT",
-        url: "/duties/65dc9d72f40678a9e92ad2f8/constraints",
+        url: `/duties/${secondTestDutyId}/constraints`,
         payload: putPayload,
       });
 
+      const dutyAfterUpdate = response.json() as Duty;
+
       expect(response.statusCode).toBe(200);
+      expect(dutyAfterUpdate.updatedAt).not.toStrictEqual(
+        dutyBeforeUpdate.updatedAt
+      );
     });
 
     it("Should return 404 when trying to add new constraints to a duty.", async () => {
       const response = await server.inject({
         method: "PUT",
-        url: "/duties/77da35be5af6c458cc1e523d/constraints",
+        url: `/duties/${notFoundDutyId}/constraints`,
         payload: putPayload,
       });
 

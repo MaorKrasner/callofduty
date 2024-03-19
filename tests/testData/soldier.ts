@@ -1,3 +1,12 @@
+import { Soldier } from "../../src/types/soldier";
+
+export const testSoldier: Partial<Soldier> = {
+  _id: "4567890",
+  name: "Test man",
+  rank: { name: "sergeant", value: 2 },
+  limitations: ["beard", "hair", "hatash7"],
+};
+
 export const workingPostPayload = {
   _id: "5789483",
   name: "Moby Brown",
@@ -36,3 +45,9 @@ export const notWorkingPatchPayloads = [
     limitations: ["beard", "hair", "hatash7", "standing", "sun"],
   },
 ];
+
+export const notFoundSoldierId = "123";
+
+export const existingLimitations = ["hair", "hatash7"];
+
+export const notExistingLimitation = "c";
