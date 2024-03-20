@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import * as HttpStatus from "http-status-codes";
 
 import { initialize } from "../../src/app.js";
 import { close } from "../../src/server.js";
@@ -86,7 +87,7 @@ describe("Duty routes", () => {
         url: `/duties?name=${attackingIranDuty.name}`,
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toHaveProperty("data");
     });
 
@@ -96,7 +97,7 @@ describe("Duty routes", () => {
         url: `/duties/${attackingIranId}`,
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toHaveProperty("data");
     });
 
@@ -106,7 +107,7 @@ describe("Duty routes", () => {
         url: `/duties/${notFoundDutyId}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 
@@ -118,7 +119,7 @@ describe("Duty routes", () => {
         payload: testPostWorkingPayload,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
       expect(response.json()).toHaveProperty("createdAt");
       expect(response.json()).toHaveProperty("updatedAt");
     });
@@ -131,7 +132,7 @@ describe("Duty routes", () => {
         url: `/duties/${attackingIranId}`,
       });
 
-      expect(response.statusCode).toBe(204);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NO_CONTENT);
       expect(await findDuty(attackingIranId.toString())).toBe(null);
     });
 
@@ -141,7 +142,7 @@ describe("Duty routes", () => {
         url: `/duties/${testDutyId}`,
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
     });
 
     it("Should return 404 when trying to delete a duty.", async () => {
@@ -150,7 +151,7 @@ describe("Duty routes", () => {
         url: `/duties/${notFoundDutyId}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 
@@ -166,7 +167,7 @@ describe("Duty routes", () => {
 
       const dutyAfterUpdate = response.json() as Duty;
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(dutyAfterUpdate.soldiersRequired).not.toStrictEqual(
         dutyBeforeUpdate.soldiersRequired
       );
@@ -179,7 +180,7 @@ describe("Duty routes", () => {
         payload: patchPayload,
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
     });
 
     it("Should return 404 when trying to update duty.", async () => {
@@ -189,7 +190,7 @@ describe("Duty routes", () => {
         payload: patchPayload,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 
@@ -205,7 +206,7 @@ describe("Duty routes", () => {
 
       const dutyAfterUpdate = response.json() as Duty;
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(dutyAfterUpdate.updatedAt).not.toStrictEqual(
         dutyBeforeUpdate.updatedAt
       );
@@ -218,7 +219,7 @@ describe("Duty routes", () => {
         payload: putPayload,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 });

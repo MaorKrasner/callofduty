@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it, beforeAll } from "vitest";
+import * as HttpStatus from "http-status-codes";
 
 import { initialize } from "../../src/app.js";
 import { close } from "../../src/server.js";
@@ -43,7 +44,7 @@ describe("Soldier routes", () => {
         url: `/soldiers/${testSoldierId}`,
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toHaveProperty("data");
     });
 
@@ -53,7 +54,7 @@ describe("Soldier routes", () => {
         url: `/soldiers/${notFoundSoldierId}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
 
     it("Should return 200 when trying to get soldiers by filters.", async () => {
@@ -62,7 +63,7 @@ describe("Soldier routes", () => {
         url: `/soldiers?limitations=${existingLimitations[0]},${existingLimitations[1]}`,
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toHaveProperty("data");
     });
 
@@ -72,7 +73,7 @@ describe("Soldier routes", () => {
         url: `/soldiers?limitations=${notExistingLimitation}`,
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toStrictEqual({
         data: [],
       });
@@ -87,7 +88,7 @@ describe("Soldier routes", () => {
         payload: workingPostPayload,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
       expect(response.json()).toHaveProperty("createdAt");
     });
 
@@ -98,7 +99,9 @@ describe("Soldier routes", () => {
         payload: notWorkingPostPayloads[0],
       });
 
-      expect(response.statusCode).toBe(500);
+      expect(response.statusCode).toBe(
+        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
+      );
     });
 
     it("Should return 409 when trying to create a new soldier.", async () => {
@@ -108,7 +111,7 @@ describe("Soldier routes", () => {
         payload: notWorkingPostPayloads[1],
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
     });
   });
 
@@ -119,7 +122,7 @@ describe("Soldier routes", () => {
         url: `/soldiers/${workingPostPayload._id}`,
       });
 
-      expect(response.statusCode).toBe(204);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NO_CONTENT);
       expect(await findSoldier(workingPostPayload._id)).toBe(null);
     });
     it("Should return 404 when trying to delete a soldier.", async () => {
@@ -128,7 +131,7 @@ describe("Soldier routes", () => {
         url: `/soldiers/${notFoundSoldierId}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 
@@ -144,7 +147,7 @@ describe("Soldier routes", () => {
 
       const responseAsSoldier = response.json() as Soldier;
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(responseAsSoldier.limitations).not.toStrictEqual(
         soldierBeforeUpdate.limitations
       );
@@ -160,7 +163,9 @@ describe("Soldier routes", () => {
         payload: notWorkingPatchPayloads[0],
       });
 
-      expect(response.statusCode).toBe(500);
+      expect(response.statusCode).toBe(
+        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
+      );
     });
 
     it("Should return 500 when trying to update a soldier (not passing schema).", async () => {
@@ -170,7 +175,9 @@ describe("Soldier routes", () => {
         payload: notWorkingPatchPayloads[1],
       });
 
-      expect(response.statusCode).toBe(500);
+      expect(response.statusCode).toBe(
+        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
+      );
     });
 
     it("Should return 404 when trying to update a soldier.", async () => {
@@ -180,7 +187,7 @@ describe("Soldier routes", () => {
         payload: notWorkingPatchPayloads[1],
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 });
