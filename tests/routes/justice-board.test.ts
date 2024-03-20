@@ -63,7 +63,7 @@ describe("justice board routes", () => {
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
-      expect(response.json()).eq({
+      expect(response.json()).deep.eq({
         error: `Couldn't find soldier with id ${notFoundSoldierId}`,
       });
     });
