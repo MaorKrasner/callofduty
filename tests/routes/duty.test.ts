@@ -8,10 +8,12 @@ import { client } from "../../src/db/connections.js";
 import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
 import {
+  DutyInPastId,
   notFoundDutyId,
   postWorkingPayload,
   putPayload,
   patchPayload,
+  putScheduleNotWorkingPayloads,
   secondTestPostWorkingPayload,
   testPostWorkingPayload,
 } from "../testData/duty.js";
@@ -32,6 +34,9 @@ let testDutyId: ObjectId;
 
 let secondTestDuty: Duty;
 let secondTestDutyId: ObjectId;
+
+let putCancelDuty: Duty;
+let putCancelDutyId: ObjectId;
 
 const server = await initialize();
 
@@ -63,11 +68,27 @@ beforeAll(async () => {
     }
   )) as Duty;
   secondTestDutyId = secondTestDutyFromDb._id!;
+
+  putCancelDuty = createDutyDocument(putScheduleNotWorkingPayloads[1]);
+  await insertDuty(putCancelDuty);
+
+  const putCancelDutyFromDb = (await findOne<Duty & Document>(
+    client,
+    "duties",
+    {
+      name: putCancelDuty.name,
+    }
+  )) as Duty;
+  putCancelDutyId = putCancelDutyFromDb._id!;
+
+  const putUpdateData = { status: "canceled" } as Partial<Duty>;
+  await updateDuty(putCancelDutyId.toString(), putUpdateData);
 });
 
 afterAll(async () => {
   await deleteDuty(testDutyId.toString());
   await deleteDuty(secondTestDutyId.toString());
+  await deleteDuty(putCancelDutyId.toString());
 
   const testDutyToDelete = await findManyDuties({
     name: testPostWorkingPayload.name,
@@ -195,31 +216,170 @@ describe("Duty routes", () => {
   });
 
   describe("PUT routes for duties", () => {
-    it("Should return 200 when adding new constraints to a duty.", async () => {
-      const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
+    describe("constraints PUT route", () => {
+      it("Should return 200 when adding new constraints to a duty.", async () => {
+        const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
 
-      const response = await server.inject({
-        method: "PUT",
-        url: `/duties/${secondTestDutyId}/constraints`,
-        payload: putPayload,
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${secondTestDutyId}/constraints`,
+          payload: putPayload,
+        });
+
+        const dutyAfterUpdate = response.json() as Duty;
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(dutyAfterUpdate.updatedAt).not.toStrictEqual(
+          dutyBeforeUpdate.updatedAt
+        );
       });
 
-      const dutyAfterUpdate = response.json() as Duty;
+      it("Should return 404 when trying to add new constraints to a duty.", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${notFoundDutyId}/constraints`,
+          payload: putPayload,
+        });
 
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-      expect(dutyAfterUpdate.updatedAt).not.toStrictEqual(
-        dutyBeforeUpdate.updatedAt
-      );
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+      });
     });
 
-    it("Should return 404 when trying to add new constraints to a duty.", async () => {
-      const response = await server.inject({
-        method: "PUT",
-        url: `/duties/${notFoundDutyId}/constraints`,
-        payload: putPayload,
+    describe("schedule PUT route", () => {
+      it("Should return 200 when trying to schedule a new duty.", async () => {
+        const dutyBeforeChanges = await findDuty(secondTestDutyId.toString());
+
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${secondTestDutyId}/schedule`,
+        });
+
+        const dutyAfterChanges = await findDuty(secondTestDutyId.toString());
+        const statementToCheck =
+          dutyAfterChanges.statusHistory.length -
+            dutyBeforeChanges.statusHistory.length ===
+            1 &&
+          dutyAfterChanges.statusHistory[
+            dutyAfterChanges.statusHistory.length - 1
+          ].status === "scheduled";
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(statementToCheck).toBe(true);
       });
 
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+      it("Should return 409 when trying to schedule a new duty (duty in the past).", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${DutyInPastId}/schedule`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+        expect(response.json()).deep.eq({
+          error: "Cannot schedule the duty because it's in the past.",
+        });
+      });
+
+      it("Should return 409 when trying to schedule a new duty (scheduled duty).", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${testDutyId}/schedule`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+        expect(response.json()).deep.eq({
+          error: `Duty cannot be scheduled because it is scheduled`,
+        });
+      });
+
+      it("Should return 409 when trying to schedule a new duty (canceled duty).", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${putCancelDutyId}/schedule`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+        expect(response.json()).deep.eq({
+          error: `Duty cannot be scheduled because it is canceled`,
+        });
+      });
+
+      it("Should return 404 when trying to schedule a new duty.", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${notFoundDutyId}/schedule`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+        expect(response.json()).deep.eq({
+          error: `Cannot find Duty with id ${notFoundDutyId}.`,
+        });
+      });
+    });
+
+    describe("cancel PUT route", () => {
+      it("Should return 200 when trying to cancel a duty.", async () => {
+        const dutyBeforeChanges = await findDuty(testDutyId.toString());
+
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${testDutyId}/cancel`,
+        });
+
+        const dutyAfterChanges = await findDuty(testDutyId.toString());
+        const statementToCheck =
+          dutyAfterChanges.statusHistory.length -
+            dutyBeforeChanges.statusHistory.length ===
+            1 &&
+          dutyAfterChanges.statusHistory[
+            dutyAfterChanges.statusHistory.length - 1
+          ].status === "canceled";
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(statementToCheck).toBe(true);
+      });
+
+      it("Should return 409 when trying to cancel a duty (duty in the past).", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${DutyInPastId}/cancel`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+        expect(response.json()).deep.eq({
+          error: "Cannot cancel the duty because it's in the past.",
+        });
+      });
+
+      it("Should return 409 when trying to cancel a duty (canceled duty).", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${putCancelDutyId}/cancel`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+        expect(response.json()).deep.eq({
+          error: `Cannot cancel canceled duties.`,
+        });
+      });
+
+      it("Should return 404 when trying to cancel a duty.", async () => {
+        const response = await server.inject({
+          method: "PUT",
+          url: `/duties/${notFoundDutyId}/cancel`,
+          payload: putPayload,
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+        expect(response.json()).deep.eq({
+          error: `Cannot find Duty with id ${notFoundDutyId}.`,
+        });
+      });
     });
   });
 });
