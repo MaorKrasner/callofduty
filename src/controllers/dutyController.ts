@@ -2,15 +2,78 @@ import { FastifyRequest, FastifyReply } from "fastify";
 
 import { dutyPatchSchema, dutyPostSchema } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
+import { type Soldier } from "../types/soldier.js";
 import logger from "../logger.js";
 import {
   addConstraintsToDuty,
   deleteDuty,
+  findAllDuties,
   findDuty,
   findManyDuties,
   insertDuty,
   updateDuty,
 } from "../collections/duty.js";
+import { findAllSoldiers } from "../collections/soldier.js";
+import { aggregateJusticeBoard } from "../collections/justice-board.js";
+import { justiceBoardElement } from "../types/justice-board.js";
+
+const validateLimitations = (
+  limitations: string[],
+  dutyConstraints: string[]
+) => {
+  return (
+    limitations.filter((limit) => dutyConstraints.includes(limit)).length === 0
+  );
+};
+
+const validateRank = (
+  soldierRank: number,
+  minRank: number | null,
+  maxRank: number | null
+) => {
+  if (!!minRank) {
+    if (soldierRank < minRank) {
+      return false;
+    }
+  }
+
+  if (!!maxRank) {
+    if (soldierRank > maxRank) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const validateDates = (
+  firstStartTime: number,
+  firstEndTime: number,
+  secondStartTime: number,
+  secondEndTime: number
+) => {
+  return firstStartTime > secondEndTime || firstEndTime < secondStartTime;
+};
+
+const fixJusticeBoard = (
+  justiceBoard: justiceBoardElement[],
+  soldiers: Soldier[],
+  duty: Duty
+): justiceBoardElement[] => {
+  justiceBoard = justiceBoard.filter((element) => {
+    return soldiers.map((soldier) => soldier._id).includes(element._id);
+  });
+
+  justiceBoard = justiceBoard.sort((a, b) => {
+    return a.score > b.score ? 1 : a.score < b.score ? -1 : 0;
+  });
+
+  if (soldiers.length > duty.soldiersRequired) {
+    justiceBoard = justiceBoard.slice(0, duty.soldiersRequired);
+  }
+
+  return justiceBoard;
+};
 
 export const createDutyDocument = (duty: Partial<Duty>): Duty => {
   return {
@@ -188,6 +251,160 @@ export const putConstraintsById = async (
     return await reply
       .code(409)
       .send({ error: "Something wrong happened during the update." });
+  }
+
+  return await reply.code(200).send(newDuty);
+};
+
+export const putScheduleById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id } = request.params as { id: string };
+
+  const duty = await findDuty(id);
+
+  if (!duty) {
+    return await reply
+      .code(404)
+      .send({ error: `Cannot find Duty with id ${id}.` });
+  }
+
+  const status = duty.status;
+
+  if (status === "scheduled" || status === "canceled") {
+    return await reply
+      .code(409)
+      .send({ error: `Duty cannot be scheduled because it is ${status}` });
+  }
+
+  if (new Date(duty.startTime).getTime() < new Date().getTime()) {
+    return await reply
+      .code(409)
+      .send({ error: "Cannot schedule the duty because it's in the past." });
+  }
+
+  let soldiers = await findAllSoldiers();
+
+  const duties = await findAllDuties();
+
+  const canParticipateArray: boolean[] = new Array<boolean>(
+    soldiers.length
+  ).fill(true);
+
+  let i = 0;
+  let j = 0;
+
+  const constraints = duty.constraints;
+
+  for (; i < soldiers.length; i++) {
+    canParticipateArray[i] = validateLimitations(
+      soldiers[i].limitations,
+      constraints
+    );
+
+    if (canParticipateArray[i]) {
+      canParticipateArray[i] = validateRank(
+        soldiers[i].rank.value,
+        duty.minRank,
+        duty.maxRank
+      );
+    }
+
+    if (canParticipateArray[i]) {
+      for (; j < duties.length; j++) {
+        if (duties[j]._id !== duty._id) {
+          if (
+            duties[j].soldiers.includes(soldiers[i]._id) &&
+            duties[j].status === "scheduled"
+          ) {
+            canParticipateArray[i] = validateDates(
+              new Date(duty.startTime).getTime(),
+              new Date(duty.endTime).getTime(),
+              new Date(duties[j].startTime).getTime(),
+              new Date(duties[j].endTime).getTime()
+            );
+          }
+        }
+      }
+    }
+  }
+
+  soldiers = soldiers.filter(
+    (soldier) => canParticipateArray[soldiers.indexOf(soldier)]
+  );
+
+  let justiceBoard = await aggregateJusticeBoard();
+
+  justiceBoard = fixJusticeBoard(justiceBoard, soldiers, duty);
+
+  const statusHistory = duty.statusHistory;
+
+  statusHistory.push({
+    status: "scheduled",
+    date: new Date(),
+  });
+
+  const dataToUpdate: Partial<Duty> = {
+    status: "scheduled",
+    statusHistory: statusHistory,
+    soldiers: justiceBoard.map((element) => element._id),
+  };
+
+  const newDuty = await updateDuty(id, dataToUpdate);
+
+  if (!newDuty) {
+    return await reply.code(409).send({ error: "Couldn't schedule the duty" });
+  }
+
+  return await reply.code(200).send(newDuty);
+};
+
+export const putCancelById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id } = request.params as { id: string };
+
+  const duty = await findDuty(id);
+
+  if (!duty) {
+    return await reply
+      .code(404)
+      .send({ error: `Cannot find Duty with id ${id}.` });
+  }
+
+  const status = duty.status;
+
+  if (status === "canceled") {
+    return await reply
+      .code(409)
+      .send({ error: "Cannot cancel canceled duties." });
+  }
+
+  if (new Date(duty.startTime).getTime() < new Date().getTime()) {
+    return await reply
+      .code(409)
+      .send({ error: "Cannot cancel the duty because it's in the past." });
+  }
+
+  const statusHistory = duty.statusHistory;
+
+  statusHistory.push({
+    status: "canceled",
+    date: new Date(),
+  });
+
+  const dataToUpdate: Partial<Duty> = {
+    status: "canceled",
+    statusHistory: statusHistory,
+    soldiers: [],
+  };
+
+  const newDuty = await updateDuty(id, dataToUpdate);
+
+  if (!newDuty) {
+    return await reply.code(409).send({ error: "Couldn't cancel the duty." });
   }
 
   return await reply.code(200).send(newDuty);
