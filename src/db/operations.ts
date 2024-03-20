@@ -52,6 +52,17 @@ export const findMany = async <P extends Document = Document>(
   return client.db(dbName).collection<P>(collectionName).find(filter).toArray();
 };
 
+export const findAll = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find({})
+    .toArray();
+};
+
 export const updateOne = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,
