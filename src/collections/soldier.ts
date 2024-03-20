@@ -2,6 +2,7 @@ import { UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
   deleteOne,
+  findAll,
   findMany,
   findOne,
   insertOne,
@@ -18,6 +19,13 @@ export const findSoldier = async (id: string) => {
     { _id: id }
   );
   return soldier as Soldier;
+};
+
+export const findAllSoldiers = async () => {
+  return (await findAll<Soldier & Document>(
+    client,
+    soldiersCollectionName
+  )) as Soldier[];
 };
 
 export const insertSoldier = async (soldier: Soldier) => {

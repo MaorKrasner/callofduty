@@ -3,6 +3,7 @@ import { ObjectId, UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
   deleteOne,
+  findAll,
   findMany,
   findOne,
   insertOne,
@@ -27,6 +28,13 @@ export const findDuty = async (id: string) => {
     _id: new ObjectId(id),
   });
   return duty as Duty;
+};
+
+export const findAllDuties = async () => {
+  return (await findAll<Duty & Document>(
+    client,
+    dutiesCollectionName
+  )) as Duty[];
 };
 
 export const deleteDuty = async (id: string) => {
