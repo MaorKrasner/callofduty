@@ -1,192 +1,192 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, beforeAll } from "vitest";
+import * as HttpStatus from "http-status-codes";
 
 import { initialize } from "../../src/app.js";
-import { buildSoldierPayload } from "../testsHelper.js";
 import { close } from "../../src/server.js";
+import { Soldier } from "../../src/types/soldier.js";
+import {
+  deleteSoldier,
+  findSoldier,
+  insertSoldier,
+} from "../../src/collections/soldier.js";
+import {
+  existingLimitations,
+  notWorkingPostPayloads,
+  notWorkingPatchPayloads,
+  notFoundSoldierId,
+  notExistingLimitation,
+  testSoldier,
+  workingPatchPayload,
+  workingPostPayload,
+} from "../testData/soldier.js";
+import { createSoldierDocument } from "../../src/controllers/soldierController.js";
+
+let testSoldierId: string;
 
 const server = await initialize();
 
-afterAll(async () => {
-    await close(server);
+beforeAll(async () => {
+  const soldierToInsert = createSoldierDocument(testSoldier);
+  await insertSoldier(soldierToInsert);
+  testSoldierId = testSoldier._id!.toString();
 });
 
-const workingPostPayload = buildSoldierPayload(
-    "5789483",
-    "Moby Brown",
-    {name: "sergeant", value: 2},
-    ["beard", "hatash7", "hair", "standing", "no work after 6pm"]
-);
-
-const notWorkingPostPayloads = [
-    buildSoldierPayload(
-    "1234568",
-    "",
-    {name: "captain", value: 4},
-    ["beard", "hatash7"]),
-
-    buildSoldierPayload(
-        "1234567",
-        "",
-        {name: "corporal", value: 1},
-        ["beard", "hatash7"]
-    )
-]
-
-const workingPatchPayload = buildSoldierPayload(
-    "",
-    "",
-    {name: "colonel", value: 6},
-    ["beard", "hair", "hatash7", "standing", "sun"]
-);
-
-const notWorkingPatchPayloads = [
-    buildSoldierPayload(
-        "2345678",
-        "",
-        {name: "colonel", value: 7},
-        ["beard", "hair", "hatash7", "standing", "sun"]
-    ),
-    
-    buildSoldierPayload(
-        "",
-        "",
-        {name: "colonel", value: 7},
-        ["beard", "hair", "hatash7", "standing", "sun"]
-    )
-]
+afterAll(async () => {
+  await deleteSoldier(testSoldierId);
+  await close(server);
+});
 
 describe("Soldier routes", () => {
-    describe("GET routes for soldiers", () => {
-        it("Should find a soldier with id 01234567. Expected 200.", async () => {
-            const response = await server.inject({
-                method: "GET",
-                url: "/soldiers/1234567"
-            });
-    
-            expect(response.statusCode).toBe(200);
-        });
-    
-        it("Should not find a soldier with id 3456789. Expected 404.", async () => {
-            const response = await server.inject({
-                method: "GET",
-                url: "/soldiers/3456789"
-            });
-    
-            expect(response.statusCode).toBe(404);
-        });
-    
-        it("Should find soldiers with limitations hair and hatash7. Expected 200.", async () => {
-            const response = await server.inject({
-                method: "GET",
-                url:"/soldiers?limitations=hair,hatash7"
-            });
-        
-            expect(response.statusCode).toBe(200);
-        });
-    
-        it("Should not find soldiers with limitation hatash4. Expected 200 and data: [].", async () => {
-            const response = await server.inject({
-                method: "GET",
-                url:"/soldiers?limitations=hatash4"
-            });
-        
-            expect(response.statusCode).toBe(200);
-            expect(response.json()).toStrictEqual({
-                "data": []
-            });
-        });
+  describe("GET routes for soldiers", () => {
+    it("Should return 200 when trying to get a soldier.", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/soldiers/${testSoldierId}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+      expect(response.json()).toHaveProperty("data");
     });
-    
-    describe("POST routes for soldiers", () => {
-        it("Should create a new soldier and put it inside the db. Expected 201.", async () => {
-            const response = await server.inject({
-                method: "POST",
-                url: "/soldiers",
-                payload: workingPostPayload
-            });
-        
-            expect(response.statusCode).toBe(201);
-        });
-    
-        it("Should not create a new soldier due to a lack of parameters. Expected 500.", async () => {
-            const response = await server.inject({
-                method: "POST",
-                url: "/soldiers",
-                payload: notWorkingPostPayloads[0]
-            });
-    
-            expect(response.statusCode).toBe(500);
-        });
-    
-        it("Should not create a new soldier due to id duplication. Expected 400.", async () => {
-            const response = await server.inject({
-                method: "POST",
-                url: "/soldiers",
-                payload: notWorkingPostPayloads[1]
-            });
-    
-            expect(response.statusCode).toBe(400);
-        });
+
+    it("Should return 404 when trying to get a soldier.", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/soldiers/${notFoundSoldierId}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
-    
-    describe("DELETE routes for soldiers", () => {
-        it("Should delete successfully the soldier with the id 0123456. Expected 204.", async () => {
-            const response = await server.inject({
-                method: "DELETE",
-                url: `/soldiers/${workingPostPayload._id}` 
-            });
-        
-            expect(response.statusCode).toBe(204);
-        });
-        it("Should not delete a soldier with id 3456789. Expected 404.", async () => {
-            const response = await server.inject({
-                method: "DELETE",
-                url: "/soldiers/3456789"
-            });
-    
-            expect(response.statusCode).toBe(404);
-        });
+
+    // check here
+    it("Should return 200 when trying to get soldiers by filters.", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/soldiers?limitations=${existingLimitations[0]},${existingLimitations[1]}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+      expect(response.json()).toHaveProperty("data");
     });
-    
-    describe("PATCH routes for soldiers", () => {
-        it("Should patch soldier with id 1234567. Expected 200.", async () => {
-            const response = await server.inject({
-                method: "PATCH",
-                url: "/soldiers/1234567",
-                payload: workingPatchPayload
-            });
-            
-            expect(response.statusCode).toBe(200);
-        });
-        
-        it("Should not patch soldier with id 1234567 because trying to modify _id. Expected 500.", async () => {
-            const response = await server.inject({
-                method: "PATCH",
-                url: "/soldiers/1234567",
-                payload: notWorkingPatchPayloads[0]
-            });
-        
-            expect(response.statusCode).toBe(500);
-        });
-        
-        it("Should not patch soldier with id 1234567 because not passing schema validation. Expected 500.", async () => {
-            const response = await server.inject({
-                method: "PATCH",
-                url: "/soldiers/1234567",
-                payload: notWorkingPatchPayloads[1]
-            });
-        
-            expect(response.statusCode).toBe(500);
-        });
-    
-        it("Should not patch soldier with id 1234569 because soldier doesn't exist. Expected 404.", async () => {
-            const response = await server.inject({
-                method: "PATCH",
-                url: "/soldiers/1234569",
-                payload: notWorkingPatchPayloads[1]
-            });
-        
-            expect(response.statusCode).toBe(404);
-        });
+
+    // check here
+    it("Should return 200 and data: [] when trying to get soldiers by filters.", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/soldiers?limitations=${notExistingLimitation}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+      expect(response.json()).toStrictEqual({
+        data: [],
+      });
     });
+  });
+
+  describe("POST routes for soldiers", () => {
+    it("Should return 201 when creating a new soldier.", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/soldiers",
+        payload: workingPostPayload,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
+      expect(response.json()).toHaveProperty("createdAt");
+    });
+
+    it("Should return 400 when trying to create a new soldier.", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/soldiers",
+        payload: notWorkingPostPayloads[0],
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
+    });
+
+    it("Should return 409 when trying to create a new soldier.", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/soldiers",
+        payload: notWorkingPostPayloads[1],
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
+    });
+  });
+
+  describe("DELETE routes for soldiers", () => {
+    it("Should return 204 when deleting a soldier.", async () => {
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/soldiers/${workingPostPayload._id}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NO_CONTENT);
+      expect(await findSoldier(workingPostPayload._id)).toBe(null);
+    });
+    it("Should return 404 when trying to delete a soldier.", async () => {
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/soldiers/${notFoundSoldierId}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+    });
+  });
+
+  describe("PATCH routes for soldiers", () => {
+    it("Should return 200 when updating a soldier.", async () => {
+      const soldierBeforeUpdate = await findSoldier(testSoldierId);
+
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/soldiers/${testSoldierId}`,
+        payload: workingPatchPayload,
+      });
+
+      const responseAsSoldier = response.json() as Soldier;
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+      expect(responseAsSoldier.limitations).deep.eq(
+        workingPatchPayload.limitations
+      );
+      expect(responseAsSoldier.rank).deep.eq(workingPatchPayload.rank);
+    });
+
+    it("Should return 400 when not trying to update a soldier (trying to update _id).", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/soldiers/${testSoldierId}`,
+        payload: notWorkingPatchPayloads[0],
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
+    });
+
+    it("Should return 400 when trying to update a soldier (not passing schema).", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/soldiers/${testSoldierId}`,
+        payload: notWorkingPatchPayloads[1],
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).toStrictEqual({
+        error: `Failed to pass schema.`,
+      });
+    });
+
+    it("Should return 404 when trying to update a soldier.", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/soldiers/${notFoundSoldierId}`,
+        payload: notWorkingPatchPayloads[1],
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+    });
+  });
 });

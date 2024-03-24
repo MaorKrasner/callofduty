@@ -1,127 +1,182 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ObjectId } from "mongodb";
+import * as HttpStatus from "http-status-codes";
 
 import logger from "../logger.js";
-import { rankValueNameDictionary, type Soldier } from "../types/soldier.js";
-import { soldierPostSchema, soldierPatchSchema } from "../schemas/soldierSchemas.js";
-import { deleteSoldier, findManySoldiers, findSoldier, insertSoldier, updateSoldier } from "../db/usefulDBFunctions.js";
+import {
+  deleteSoldier,
+  findManySoldiers,
+  findSoldier,
+  insertSoldier,
+  updateSoldier,
+} from "../collections/soldier.js";
+import { type Soldier } from "../types/soldier.js";
+import {
+  soldierPostSchema,
+  soldierPatchSchema,
+  soldierGetFilterSchema,
+} from "../schemas/soldierSchemas.js";
+import { validateSchema } from "../schemas/validator.js";
 
-const createSoldierDocument = (
-    id: string,
-    name: string,
-    rank: {
-        name: string,
-        value: number
-    },
-    limitations: string[]
-): Soldier => {
-    return {
-        _id: id,
-        name: name,
-        rank: rank,
-        limitations: limitations,
-        createdAt: new Date(),
-        updatedAt: new Date()
-    }
-}
-
-export const createSoldier = async (request: FastifyRequest, reply: FastifyReply) => {
-    const soldierData = request.body as Soldier;
-
-    const soldier = await findSoldier(soldierData._id);
-
-    if (soldier) {
-        return await reply.code(400).send(`Soldier with id ${soldierData._id} already exists.`);
-    }
-
-    soldierPostSchema.parse(soldierData);
-
-    const soldierToInsert = createSoldierDocument(
-        soldierData._id,
-        soldierData.name,
-        soldierData.rank,
-        soldierData.limitations.map(limitation => limitation.toLowerCase())
-    );
-
-    const insertionResult = await insertSoldier(soldierToInsert);
-
-    if (insertionResult.insertedId) {
-        await reply.code(201).send(soldierToInsert);
-    } else {
-        await reply.code(400).send({error: "Couldn't insert soldier"});
-    }
+export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
+  return {
+    _id: soldier._id!,
+    name: soldier.name!,
+    rank: soldier.rank!,
+    limitations: soldier.limitations!,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 };
 
-export const getSoldierById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const soldier = await findSoldier(id);
+export const createSoldier = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const soldierData = request.body as Soldier;
 
-    if (soldier) {
-        await reply.code(200).send({message: `Soldier found!`, data: soldier});
-    } else {
-        await reply.code(404).send({error : `Soldier not found. Check the length of the id you passed and the id itself.`});
-    }
+  const soldier = await findSoldier(soldierData._id);
+
+  if (soldier) {
+    return await reply
+      .code(HttpStatus.StatusCodes.CONFLICT)
+      .send(`Soldier with id ${soldierData._id} already exists.`);
+  }
+
+  const schemaResult = validateSchema(soldierPostSchema, soldierData);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  soldierData.limitations = soldierData.limitations.map((limitation) =>
+    limitation.toLowerCase()
+  );
+
+  const soldierToInsert = createSoldierDocument(soldierData);
+
+  const insertionResult = await insertSoldier(soldierToInsert);
+
+  if (insertionResult.insertedId) {
+    await reply.code(HttpStatus.StatusCodes.CREATED).send(soldierToInsert);
+  } else {
+    await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: "Couldn't insert soldier" });
+  }
 };
 
-export const getSoldiersByFilters = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { name, limitations, rankValue, rankName } = request.query as {
-        name?: string;
-        limitations?: string;
-        rankValue?: number;
-        rankName?: string;
-    };
+export const getSoldierById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id } = request.params as { id: string };
+  const soldier = await findSoldier(id);
 
-    let limitationsAsStringArray: string[] | undefined = undefined;
-    
-    if (limitations) {
-        limitationsAsStringArray = limitations.split(',');
-    }
-
-    const filter = {
-        name,
-        limitations: limitationsAsStringArray,
-        rankName,
-        rankValue: parseInt(String(rankValue))
-    };
-
-    const filteredSoldiers = await findManySoldiers(filter);
-
-    await reply.code(200).send({data: filteredSoldiers});
-    logger.info(`Found soldiers with parameters. The soldiers are : \n${filteredSoldiers}`);
+  if (soldier) {
+    await reply
+      .code(HttpStatus.StatusCodes.OK)
+      .send({ message: `Soldier found!`, data: soldier });
+  } else {
+    await reply.code(HttpStatus.StatusCodes.NOT_FOUND).send({
+      error: `Soldier not found. Check the length of the id you passed and the id itself.`,
+    });
+  }
 };
 
-export const deleteSoldierById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    if (await findSoldier(id)) {
-        const deleteResult = await deleteSoldier(id);
+export const getSoldiersByFilters = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { limitations, rankValue, ...filter } = request.query as {
+    name?: string;
+    limitations?: string;
+    rankValue?: number;
+    rankName?: string;
+  };
 
-        if (deleteResult.deletedCount > 0) {
-            await reply.code(204).send();
-        } else {
-            await reply.code(400).send({error: `Error. The deletion has failed.`});
-        }
-    } else {
-        await reply.code(404).send({error: `Soldier not found. There is no soldier with id ${id}`});
-    }
-}
+  const schemaResult = validateSchema(soldierGetFilterSchema, {
+    limitations,
+    rankValue,
+    ...filter,
+  });
 
-export const updateSoldierById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const updatedSoldierData = request.body as Partial<Soldier>;
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
 
-    if (!await findSoldier(id)) {
-        return await reply.status(404).send({ error: `Soldier not found. There is no soldier with id ${id}.` });
-    }
+  let limitationsAsStringArray: string[] | undefined = undefined;
 
-    soldierPatchSchema.parse(updatedSoldierData);
+  if (limitations) {
+    limitationsAsStringArray = limitations.split(",");
+  }
 
-    const firstUpdateResult = await updateSoldier(id, updatedSoldierData);
-    const secondUpdateResult = await updateSoldier(id, {updatedAt: new Date()});
+  const filteredSoldiers = await findManySoldiers({
+    ...filter,
+    limitations: limitationsAsStringArray,
+    rankValue: parseInt(String(rankValue)),
+  });
 
-    if (firstUpdateResult.modifiedCount <= 0 && secondUpdateResult.modifiedCount <= 0) {
-        return;
-    }
+  await reply.code(HttpStatus.StatusCodes.OK).send({ data: filteredSoldiers });
+  logger.info(
+    `Found soldiers with parameters. The soldiers are : \n${filteredSoldiers}`
+  );
+};
 
-    const newSoldier = await findSoldier(id);
-    return await reply.status(200).send(newSoldier);
+export const deleteSoldierById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id } = request.params as { id: string };
+
+  if (!(await findSoldier(id))) {
+    return await reply
+      .code(HttpStatus.StatusCodes.NOT_FOUND)
+      .send({ error: `Soldier not found. There is no soldier with id ${id}` });
+  }
+
+  const deleteResult = await deleteSoldier(id);
+
+  if (deleteResult.deletedCount <= 0) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Error. The deletion has failed.` });
+  }
+
+  return await reply.code(HttpStatus.StatusCodes.NO_CONTENT).send();
+};
+
+export const updateSoldierById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id } = request.params as { id: string };
+  const updatedSoldierData = request.body as Partial<Soldier>;
+
+  if (!(await findSoldier(id))) {
+    return await reply
+      .status(HttpStatus.StatusCodes.NOT_FOUND)
+      .send({ error: `Soldier not found. There is no soldier with id ${id}.` });
+  }
+
+  const schemaResult = validateSchema(soldierPatchSchema, updatedSoldierData);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const newSoldier = await updateSoldier(id, updatedSoldierData);
+
+  if (!newSoldier) {
+    return await reply
+      .code(HttpStatus.StatusCodes.CONFLICT)
+      .send("Something wrong happened during the update.");
+  }
+
+  return await reply.status(HttpStatus.StatusCodes.OK).send(newSoldier);
 };
