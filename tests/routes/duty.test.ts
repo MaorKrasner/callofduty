@@ -9,6 +9,8 @@ import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
 import {
   notFoundDutyId,
+  notWorkingPatchPayload,
+  notWorkingUrlParameter,
   postWorkingPayload,
   putPayload,
   patchPayload,
@@ -30,8 +32,8 @@ let attackingIranId: ObjectId;
 let testDuty: Duty;
 let testDutyId: ObjectId;
 
-let secondTestDuty: Duty;
-let secondTestDutyId: ObjectId;
+let secondGazaAttack: Duty;
+let secondGazaAttackId: ObjectId;
 
 const server = await initialize();
 
@@ -53,21 +55,21 @@ beforeAll(async () => {
   const updateData = { status: "scheduled" } as Partial<Duty>;
   await updateDuty(testDutyId.toString(), updateData);
 
-  secondTestDuty = createDutyDocument(secondTestPostWorkingPayload);
-  await insertDuty(secondTestDuty);
+  secondGazaAttack = createDutyDocument(secondTestPostWorkingPayload);
+  await insertDuty(secondGazaAttack);
   const secondTestDutyFromDb = (await findOne<Duty & Document>(
     client,
     "duties",
     {
-      name: secondTestDuty.name,
+      name: secondGazaAttack.name,
     }
   )) as Duty;
-  secondTestDutyId = secondTestDutyFromDb._id!;
+  secondGazaAttackId = secondTestDutyFromDb._id!;
 });
 
 afterAll(async () => {
   await deleteDuty(testDutyId.toString());
-  await deleteDuty(secondTestDutyId.toString());
+  await deleteDuty(secondGazaAttackId.toString());
 
   const testDutyToDelete = await findManyDuties({
     name: testPostWorkingPayload.name,
@@ -101,6 +103,16 @@ describe("Duty routes", () => {
       expect(response.json()).toHaveProperty("data");
     });
 
+    it("Should return 400 when trying to get existing duties.", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/duties?${notWorkingUrlParameter}`,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
+    });
+
     it("Should return 404 when trying to find duty by id.", async () => {
       const response = await server.inject({
         method: "GET",
@@ -122,6 +134,17 @@ describe("Duty routes", () => {
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
       expect(response.json()).toHaveProperty("createdAt");
       expect(response.json()).toHaveProperty("updatedAt");
+    });
+
+    it("Should return 400 when creating a new duty.", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/duties",
+        payload: patchPayload,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
     });
   });
 
@@ -157,11 +180,11 @@ describe("Duty routes", () => {
 
   describe("PATCH routes for duties", () => {
     it("Should return 200 when trying to update a duty.", async () => {
-      const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
+      const dutyBeforeUpdate = await findDuty(secondGazaAttackId.toString());
 
       const response = await server.inject({
         method: "PATCH",
-        url: `/duties/${secondTestDutyId}`,
+        url: `/duties/${secondGazaAttackId}`,
         payload: patchPayload,
       });
 
@@ -183,6 +206,19 @@ describe("Duty routes", () => {
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
     });
 
+    it("Should return 400 when trying to update a duty.", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/duties/${secondGazaAttackId}`, // change here
+        payload: notWorkingPatchPayload,
+      });
+
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({
+        error: `Failed to pass schema.`,
+      });
+    });
+
     it("Should return 404 when trying to update duty.", async () => {
       const response = await server.inject({
         method: "PATCH",
@@ -196,11 +232,11 @@ describe("Duty routes", () => {
 
   describe("PUT routes for duties", () => {
     it("Should return 200 when adding new constraints to a duty.", async () => {
-      const dutyBeforeUpdate = await findDuty(secondTestDutyId.toString());
+      const dutyBeforeUpdate = await findDuty(secondGazaAttackId.toString());
 
       const response = await server.inject({
         method: "PUT",
-        url: `/duties/${secondTestDutyId}/constraints`,
+        url: `/duties/${secondGazaAttackId}/constraints`,
         payload: putPayload,
       });
 
