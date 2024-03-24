@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import * as HttpStatus from "http-status-codes";
 
 import {
   aggregateJusticeBoard,
@@ -6,7 +7,6 @@ import {
 } from "../collections/justice-board.js";
 import { findSoldier } from "../collections/soldier.js";
 import type { justiceBoardElement } from "../types/justice-board.js";
-import logger from "../logger.js";
 
 export const getJusticeBoard = async (
   request: FastifyRequest,
@@ -14,7 +14,7 @@ export const getJusticeBoard = async (
 ) => {
   const justiceBoard: justiceBoardElement[] = await aggregateJusticeBoard();
 
-  await reply.code(200).send(justiceBoard);
+  return await reply.code(HttpStatus.StatusCodes.OK).send(justiceBoard);
 };
 
 export const getJusticeBoardById = async (
@@ -22,14 +22,15 @@ export const getJusticeBoardById = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params as { id: string };
-  const soldier = await findSoldier(id);
 
-  if (soldier) {
-    const soldierScore = await aggregateJusticeBoardById(id);
-    await reply.code(200).send({ score: soldierScore });
-  } else {
-    await reply
-      .code(404)
+  if (!(await findSoldier(id))) {
+    return await reply
+      .code(HttpStatus.StatusCodes.NOT_FOUND)
       .send({ error: `Couldn't find soldier with id ${id}` });
   }
+
+  const soldierScore = await aggregateJusticeBoardById(id);
+  return await reply
+    .code(HttpStatus.StatusCodes.OK)
+    .send({ score: soldierScore });
 };

@@ -8,7 +8,6 @@ import { notFoundSoldierId } from "../testData/soldier.js";
 import { justiceBoardTestSoldier } from "../testData/justice-board.js";
 import { createSoldierDocument } from "../../src/controllers/soldierController.js";
 import { aggregateJusticeBoardById } from "../../src/collections/justice-board.js";
-import exp from "constants";
 
 let testSoldierId: string;
 
@@ -35,7 +34,7 @@ describe("justice board routes", () => {
 
       const score = await aggregateJusticeBoardById(testSoldierId.toString());
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toContainEqual({
         _id: testSoldierId,
         score: score,
@@ -50,7 +49,7 @@ describe("justice board routes", () => {
 
       const score = await aggregateJusticeBoardById(testSoldierId);
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toStrictEqual({
         score: score,
       });
