@@ -57,6 +57,7 @@ describe("Soldier routes", () => {
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
 
+    // check here
     it("Should return 200 when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",
@@ -67,6 +68,7 @@ describe("Soldier routes", () => {
       expect(response.json()).toHaveProperty("data");
     });
 
+    // check here
     it("Should return 200 and data: [] when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",
@@ -92,16 +94,15 @@ describe("Soldier routes", () => {
       expect(response.json()).toHaveProperty("createdAt");
     });
 
-    it("Should return 500 when trying to create a new soldier.", async () => {
+    it("Should return 400 when trying to create a new soldier.", async () => {
       const response = await server.inject({
         method: "POST",
         url: "/soldiers",
         payload: notWorkingPostPayloads[0],
       });
 
-      expect(response.statusCode).toBe(
-        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
-      );
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
     });
 
     it("Should return 409 when trying to create a new soldier.", async () => {
@@ -148,36 +149,34 @@ describe("Soldier routes", () => {
       const responseAsSoldier = response.json() as Soldier;
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-      expect(responseAsSoldier.limitations).not.toStrictEqual(
-        soldierBeforeUpdate.limitations
+      expect(responseAsSoldier.limitations).deep.eq(
+        workingPatchPayload.limitations
       );
-      expect(responseAsSoldier.rank).not.toStrictEqual(
-        soldierBeforeUpdate.rank
-      );
+      expect(responseAsSoldier.rank).deep.eq(workingPatchPayload.rank);
     });
 
-    it("Should return 500 when not trying to update a soldier (trying to update _id).", async () => {
+    it("Should return 400 when not trying to update a soldier (trying to update _id).", async () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/soldiers/${testSoldierId}`,
         payload: notWorkingPatchPayloads[0],
       });
 
-      expect(response.statusCode).toBe(
-        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
-      );
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
     });
 
-    it("Should return 500 when trying to update a soldier (not passing schema).", async () => {
+    it("Should return 400 when trying to update a soldier (not passing schema).", async () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/soldiers/${testSoldierId}`,
         payload: notWorkingPatchPayloads[1],
       });
 
-      expect(response.statusCode).toBe(
-        HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR
-      );
+      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      expect(response.json()).toStrictEqual({
+        error: `Failed to pass schema.`,
+      });
     });
 
     it("Should return 404 when trying to update a soldier.", async () => {

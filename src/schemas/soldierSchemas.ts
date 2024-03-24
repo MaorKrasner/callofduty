@@ -55,3 +55,21 @@ export const soldierPatchSchema = z
     ),
   })
   .strict();
+
+export const soldierGetFilterSchema = z
+  .object({
+    name: z.optional(z.string().min(3).max(50)),
+    limitations: z.optional(z.string()),
+    rankValue: z.optional(z.number().min(0).max(6)),
+    rankName: z.optional(z.string()),
+  })
+  .strict()
+  .refine((obj) => {
+    if (obj.rankName) {
+      return (
+        Object.values(rankValueNameDictionary).indexOf(obj.rankName) !== -1
+      );
+    }
+
+    return true;
+  });

@@ -7,7 +7,7 @@ const server = await initialize();
 
 describe("Health routes", () => {
   describe("GET routes for health", () => {
-    it("Should return {status: ok} when sending request to /health route. Expected 200.", async () => {
+    it("Should return {status: ok} when sending request to /health route.", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",
@@ -17,7 +17,7 @@ describe("Health routes", () => {
       expect(response.json()).toStrictEqual({ status: "ok" });
     });
 
-    it("Should return {status: ok} when sending request to /health/db route. Expected 200.", async () => {
+    it("Should return {status: ok} when sending request to /health/db route.", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",

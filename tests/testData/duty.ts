@@ -56,4 +56,10 @@ export const patchPayload = {
   soldiersRequired: 50,
 };
 
-export const notFoundDutyId = "000000000000000000000000";
+export const notWorkingPatchPayload = {
+  amount: 4,
+};
+
+export const notFoundDutyId = Array(24).fill("0").join("");
+
+export const notWorkingUrlParameter = "lim=abc";

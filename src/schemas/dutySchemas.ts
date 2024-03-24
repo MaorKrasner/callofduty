@@ -91,3 +91,45 @@ export const dutyPatchSchema = z
 
     return true;
   });
+
+export const dutyGetFilterSchema = z
+  .object({
+    name: z.optional(z.string().min(3).max(50)),
+    location: z.optional(
+      z
+        .object({
+          type: z.literal("Point"),
+          coordinates: z.array(z.number().positive()).length(2),
+        })
+        .strict()
+    ),
+    startTime: z.optional(z.string().transform((date) => new Date(date))),
+    endTime: z.optional(z.string().transform((date) => new Date(date))),
+    constraints: z.optional(z.array(z.string())),
+    soldiersRequired: z.optional(z.number().positive()),
+    value: z.optional(z.number().positive()),
+    minRank: z.optional(z.number().min(0).max(6)),
+    maxRank: z.optional(z.number().min(0).max(6)),
+  })
+  .strict()
+  .refine((obj) => {
+    if (obj.startTime) {
+      if (obj.startTime < new Date()) {
+        return false;
+      }
+    }
+
+    if (obj.startTime && obj.endTime) {
+      if (obj.startTime >= obj.endTime) {
+        return false;
+      }
+    }
+
+    if (obj.minRank && obj.maxRank) {
+      if (obj.minRank > obj.maxRank) {
+        return false;
+      }
+    }
+
+    return true;
+  });
