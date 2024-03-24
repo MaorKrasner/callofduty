@@ -11,7 +11,13 @@ export const workingPostPayload = {
   _id: "5789483",
   name: "Moby Brown",
   rank: { name: "sergeant", value: 2 },
-  limitations: ["beard", "hatash7", "hair", "standing", "no work after 6pm"],
+  limitations: [
+    "beard",
+    "hatash7",
+    "hair",
+    "standing",
+    "be home after darkness",
+  ],
 };
 
 export const notWorkingPostPayloads = [

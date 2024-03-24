@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import * as HttpStatus from "http-status-codes";
 
 import logger from "../logger.js";
 import {
@@ -12,7 +13,9 @@ import { type Soldier } from "../types/soldier.js";
 import {
   soldierPostSchema,
   soldierPatchSchema,
+  soldierGetFilterSchema,
 } from "../schemas/soldierSchemas.js";
+import { validateSchema } from "../schemas/validator.js";
 
 export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
@@ -35,11 +38,17 @@ export const createSoldier = async (
 
   if (soldier) {
     return await reply
-      .code(409)
+      .code(HttpStatus.StatusCodes.CONFLICT)
       .send(`Soldier with id ${soldierData._id} already exists.`);
   }
 
-  soldierPostSchema.parse(soldierData);
+  const schemaResult = validateSchema(soldierPostSchema, soldierData);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
 
   soldierData.limitations = soldierData.limitations.map((limitation) =>
     limitation.toLowerCase()
@@ -50,9 +59,11 @@ export const createSoldier = async (
   const insertionResult = await insertSoldier(soldierToInsert);
 
   if (insertionResult.insertedId) {
-    await reply.code(201).send(soldierToInsert);
+    await reply.code(HttpStatus.StatusCodes.CREATED).send(soldierToInsert);
   } else {
-    await reply.code(400).send({ error: "Couldn't insert soldier" });
+    await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: "Couldn't insert soldier" });
   }
 };
 
@@ -64,9 +75,11 @@ export const getSoldierById = async (
   const soldier = await findSoldier(id);
 
   if (soldier) {
-    await reply.code(200).send({ message: `Soldier found!`, data: soldier });
+    await reply
+      .code(HttpStatus.StatusCodes.OK)
+      .send({ message: `Soldier found!`, data: soldier });
   } else {
-    await reply.code(404).send({
+    await reply.code(HttpStatus.StatusCodes.NOT_FOUND).send({
       error: `Soldier not found. Check the length of the id you passed and the id itself.`,
     });
   }
@@ -83,6 +96,18 @@ export const getSoldiersByFilters = async (
     rankName?: string;
   };
 
+  const schemaResult = validateSchema(soldierGetFilterSchema, {
+    limitations,
+    rankValue,
+    ...filter,
+  });
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
   let limitationsAsStringArray: string[] | undefined = undefined;
 
   if (limitations) {
@@ -95,7 +120,7 @@ export const getSoldiersByFilters = async (
     rankValue: parseInt(String(rankValue)),
   });
 
-  await reply.code(200).send({ data: filteredSoldiers });
+  await reply.code(HttpStatus.StatusCodes.OK).send({ data: filteredSoldiers });
   logger.info(
     `Found soldiers with parameters. The soldiers are : \n${filteredSoldiers}`
   );
@@ -106,19 +131,22 @@ export const deleteSoldierById = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params as { id: string };
-  if (await findSoldier(id)) {
-    const deleteResult = await deleteSoldier(id);
 
-    if (deleteResult.deletedCount > 0) {
-      await reply.code(204).send();
-    } else {
-      await reply.code(400).send({ error: `Error. The deletion has failed.` });
-    }
-  } else {
-    await reply
-      .code(404)
+  if (!(await findSoldier(id))) {
+    return await reply
+      .code(HttpStatus.StatusCodes.NOT_FOUND)
       .send({ error: `Soldier not found. There is no soldier with id ${id}` });
   }
+
+  const deleteResult = await deleteSoldier(id);
+
+  if (deleteResult.deletedCount <= 0) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Error. The deletion has failed.` });
+  }
+
+  return await reply.code(HttpStatus.StatusCodes.NO_CONTENT).send();
 };
 
 export const updateSoldierById = async (
@@ -130,19 +158,25 @@ export const updateSoldierById = async (
 
   if (!(await findSoldier(id))) {
     return await reply
-      .status(404)
+      .status(HttpStatus.StatusCodes.NOT_FOUND)
       .send({ error: `Soldier not found. There is no soldier with id ${id}.` });
   }
 
-  soldierPatchSchema.parse(updatedSoldierData);
+  const schemaResult = validateSchema(soldierPatchSchema, updatedSoldierData);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
 
   const newSoldier = await updateSoldier(id, updatedSoldierData);
 
   if (!newSoldier) {
     return await reply
-      .code(409)
+      .code(HttpStatus.StatusCodes.CONFLICT)
       .send("Something wrong happened during the update.");
   }
 
-  return await reply.status(200).send(newSoldier);
+  return await reply.status(HttpStatus.StatusCodes.OK).send(newSoldier);
 };
