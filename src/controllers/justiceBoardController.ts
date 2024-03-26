@@ -30,6 +30,7 @@ export const getJusticeBoardById = async (
   }
 
   const soldierScore = await aggregateJusticeBoardById(id);
+
   return await reply
     .code(HttpStatus.StatusCodes.OK)
     .send({ score: soldierScore });
