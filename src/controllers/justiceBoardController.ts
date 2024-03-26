@@ -12,7 +12,7 @@ export const getJusticeBoard = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const justiceBoard: justiceBoardElement[] = await aggregateJusticeBoard();
+  const justiceBoard = await aggregateJusticeBoard();
 
   return await reply.code(HttpStatus.StatusCodes.OK).send(justiceBoard);
 };
