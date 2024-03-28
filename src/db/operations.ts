@@ -28,6 +28,14 @@ export const deleteOne = async <P extends Document = Document>(
   return client.db(dbName).collection<P>(collectionName).deleteOne(filter);
 };
 
+export const deleteMany = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  filter: Filter<P>
+) => {
+  return client.db(dbName).collection<P>(collectionName).deleteMany(filter);
+};
+
 export const findOne = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,

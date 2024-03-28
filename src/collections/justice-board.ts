@@ -48,15 +48,15 @@ export const aggregateJusticeBoard = async () => {
 };
 
 export const aggregateJusticeBoardById = async (id: string) => {
-  basicFilter.unshift({
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.unshift({
     $match: {
       _id: id,
     },
   });
 
-  const aggregationArray = await calculateAggregation(basicFilter);
-
-  basicFilter.shift(); // delete the unshift object, otherwise it will damage the query.
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
 
   return aggregationArray[0].score;
 };

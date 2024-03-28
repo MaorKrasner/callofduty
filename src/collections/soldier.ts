@@ -1,6 +1,7 @@
 import { UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
+  deleteMany,
   deleteOne,
   findMany,
   findOne,
@@ -58,7 +59,7 @@ export const findManySoldiers = async (filter: {
     filtersArray.push({ "rank.value": filter.rankValue });
   }
 
-  const combinedFilter = { $and: filtersArray };
+  const combinedFilter = filtersArray.length > 0 ? { $and: filtersArray } : {};
   const soldiers = await findMany<Soldier & Document>(
     client,
     soldiersCollectionName,
@@ -72,6 +73,15 @@ export const deleteSoldier = async (id: string) => {
     client,
     soldiersCollectionName,
     { _id: id }
+  );
+  return deletionResult;
+};
+
+export const deleteAllSoldiers = async () => {
+  const deletionResult = await deleteMany<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    {}
   );
   return deletionResult;
 };

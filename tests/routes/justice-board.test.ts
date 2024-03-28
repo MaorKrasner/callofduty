@@ -1,13 +1,22 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import * as HttpStatus from "http-status-codes";
 
 import { close } from "../../src/server.js";
 import { client } from "../../src/db/connections.js";
-import { deleteDuty } from "../../src/collections/duty.js";
+import {
+  deleteAllDuties,
+  deleteDuty,
+  findManyDuties,
+} from "../../src/collections/duty.js";
 import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
 import { initialize } from "../../src/app.js";
-import { deleteSoldier, insertSoldier } from "../../src/collections/soldier.js";
+import {
+  deleteSoldier,
+  deleteAllSoldiers,
+  insertSoldier,
+  findManySoldiers,
+} from "../../src/collections/soldier.js";
 import { notFoundSoldierId } from "../testData/soldier.js";
 import {
   justiceBoardTestDuty,
@@ -19,6 +28,7 @@ import { createSoldierDocument } from "../../src/controllers/soldierController.j
 import { aggregateJusticeBoardById } from "../../src/collections/justice-board.js";
 import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty, updateDuty } from "../../src/collections/duty.js";
+import { Soldier } from "../../src/types/soldier.js";
 
 let testSoldierId: string;
 let secondTestSoldierId: string;
@@ -61,6 +71,16 @@ beforeAll(async () => {
   secondTestDutyId = secondTestDutyFromDb._id!.toString();
 });
 
+afterEach(async () => {
+  await updateDuty(testDutyId, {
+    soldiers: [],
+  });
+
+  await updateDuty(secondTestDutyId, {
+    soldiers: [],
+  });
+});
+
 afterAll(async () => {
   await deleteSoldier(testSoldierId);
   await deleteSoldier(secondTestSoldierId);
@@ -91,6 +111,8 @@ describe("justice board routes", () => {
         _id: secondTestSoldierId,
         score: secondScore,
       });
+      expect(score).toBe(0);
+      expect(secondScore).toBe(0);
     });
 
     it("Should return 200 when trying to get justice-board by id. score must be 0.", async () => {
@@ -128,6 +150,10 @@ describe("justice board routes", () => {
     });
 
     it("Should return 200 when trying to get justice-board by id. score must sum of first test duty value and second duty test value.", async () => {
+      await updateDuty(testDutyId, {
+        soldiers: [testSoldierId],
+      });
+
       await updateDuty(secondTestDutyId, {
         soldiers: [testSoldierId, secondTestSoldierId],
       });
@@ -147,6 +173,10 @@ describe("justice board routes", () => {
     });
 
     it("Should return 200 when trying to get justice-board by id. score must be as the value of the second test duty.", async () => {
+      await updateDuty(secondTestDutyId, {
+        soldiers: [secondTestSoldierId],
+      });
+
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${secondTestSoldierId}`,

@@ -14,6 +14,10 @@ export const getJusticeBoard = async (
 ) => {
   const justiceBoard = await aggregateJusticeBoard();
 
+  if (justiceBoard.length === 0) {
+    return await reply.code(HttpStatus.StatusCodes.OK).send({});
+  }
+
   return await reply.code(HttpStatus.StatusCodes.OK).send(justiceBoard);
 };
 
