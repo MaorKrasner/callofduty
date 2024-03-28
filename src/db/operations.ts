@@ -28,6 +28,14 @@ export const deleteOne = async <P extends Document = Document>(
   return client.db(dbName).collection<P>(collectionName).deleteOne(filter);
 };
 
+export const deleteMany = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  filter: Filter<P>
+) => {
+  return client.db(dbName).collection<P>(collectionName).deleteMany(filter);
+};
+
 export const findOne = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,
@@ -66,4 +74,16 @@ export const updateMany = async <P extends Document = Document>(
     .db(dbName)
     .collection<P>(collectionName)
     .updateMany(filter, { $set: update });
+};
+
+export const aggregate = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  filter: Filter<P>[]
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .aggregate(filter)
+    .toArray();
 };

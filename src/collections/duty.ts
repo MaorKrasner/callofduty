@@ -2,6 +2,7 @@ import { ObjectId, UpdateFilter } from "mongodb";
 
 import { client } from "../db/connections.js";
 import {
+  deleteMany,
   deleteOne,
   findMany,
   findOne,
@@ -34,6 +35,15 @@ export const deleteDuty = async (id: string) => {
     client,
     dutiesCollectionName,
     { _id: new ObjectId(id) }
+  );
+  return deletionResult;
+};
+
+export const deleteAllDuties = async () => {
+  const deletionResult = await deleteMany<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    {}
   );
   return deletionResult;
 };
@@ -105,7 +115,7 @@ export const findManyDuties = async (filter: {
     filtersArray.push({ maxRank: parseInt(String(filter.maxRank)) });
   }
 
-  const combinedFilter = { $and: filtersArray };
+  const combinedFilter = filtersArray.length > 0 ? { $and: filtersArray } : {};
   const duties = await findMany<Duty & Document>(
     client,
     dutiesCollectionName,

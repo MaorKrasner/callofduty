@@ -95,14 +95,7 @@ export const dutyPatchSchema = z
 export const dutyGetFilterSchema = z
   .object({
     name: z.optional(z.string().min(3).max(50)),
-    location: z.optional(
-      z
-        .object({
-          type: z.literal("Point"),
-          coordinates: z.array(z.number().positive()).length(2),
-        })
-        .strict()
-    ),
+    location: z.optional(z.string()),
     startTime: z.optional(z.string().transform((date) => new Date(date))),
     endTime: z.optional(z.string().transform((date) => new Date(date))),
     constraints: z.optional(z.array(z.string())),
