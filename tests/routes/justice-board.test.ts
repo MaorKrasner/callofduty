@@ -9,11 +9,11 @@ import type { Duty } from "../../src/types/duty.js";
 import { initialize } from "../../src/app.js";
 import { deleteSoldier, insertSoldier } from "../../src/collections/soldier.js";
 import { notFoundSoldierId } from "../testData/soldier.js";
-import { 
+import {
   justiceBoardTestDuty,
   secondJusticeBoardTestDuty,
   justiceBoardTestSoldier,
-  secondJusticeBoardTestSoldier 
+  secondJusticeBoardTestSoldier,
 } from "../testData/justice-board.js";
 import { createSoldierDocument } from "../../src/controllers/soldierController.js";
 import { aggregateJusticeBoardById } from "../../src/collections/justice-board.js";
@@ -38,7 +38,9 @@ beforeAll(async () => {
   await insertSoldier(soldierToInsert);
   testSoldierId = soldierToInsert._id!.toString();
 
-  const secondSoldierToInsert = createSoldierDocument(secondJusticeBoardTestSoldier);
+  const secondSoldierToInsert = createSoldierDocument(
+    secondJusticeBoardTestSoldier
+  );
   await insertSoldier(secondSoldierToInsert);
   secondTestSoldierId = secondSoldierToInsert._id!.toString();
 
@@ -61,7 +63,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await deleteSoldier(testSoldierId);
+  await deleteSoldier(secondTestSoldierId);
+
   await deleteDuty(testDutyId);
+  await deleteDuty(secondTestDutyId);
 
   await close(server);
 });
@@ -105,7 +110,7 @@ describe("justice board routes", () => {
 
     it(`Should return 200 when trying to get justice-board by id. score must be value from first test.`, async () => {
       await updateDuty(testDutyId, {
-        soldiers: [testSoldierId]
+        soldiers: [testSoldierId],
       });
 
       const response = await server.inject({
@@ -124,7 +129,7 @@ describe("justice board routes", () => {
 
     it("Should return 200 when trying to get justice-board by id. score must sum of first test duty value and second duty test value.", async () => {
       await updateDuty(secondTestDutyId, {
-        soldiers: [testSoldierId, secondTestDutyId]
+        soldiers: [testSoldierId, secondTestSoldierId],
       });
 
       const response = await server.inject({

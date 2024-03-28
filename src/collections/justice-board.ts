@@ -31,7 +31,7 @@ const basicFilter: Object[] = [
       score: 1,
     },
   },
-]
+];
 
 const calculateAggregation = async (filter: Object[]) => {
   const aggregationArray = await aggregate<justiceBoardElement & Document>(
@@ -52,9 +52,11 @@ export const aggregateJusticeBoardById = async (id: string) => {
     $match: {
       _id: id,
     },
-  })
+  });
 
   const aggregationArray = await calculateAggregation(basicFilter);
+
+  basicFilter.shift(); // delete the unshift object, otherwise it will damage the query.
 
   return aggregationArray[0].score;
 };
