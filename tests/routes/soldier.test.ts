@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it, beforeAll } from "vitest";
 import * as HttpStatus from "http-status-codes";
+import { FastifyInstance } from "fastify";
 
-import { initialize } from "../../src/app.js";
-import { close } from "../../src/server.js";
+import { close, createServer } from "../../src/server.js";
 import { Soldier } from "../../src/types/soldier.js";
 import {
   deleteSoldier,
@@ -20,23 +20,27 @@ import {
   workingPostPayload,
 } from "../testData/soldier.js";
 import { createSoldierDocument } from "../../src/controllers/soldierController.js";
-
-let testSoldierId: string;
-
-const server = await initialize();
-
-beforeAll(async () => {
-  const soldierToInsert = createSoldierDocument(testSoldier);
-  await insertSoldier(soldierToInsert);
-  testSoldierId = testSoldier._id!.toString();
-});
-
-afterAll(async () => {
-  await deleteSoldier(testSoldierId);
-  await close(server);
-});
+import { closeDBConnection, connectToDB } from "../../src/db/connections.js";
 
 describe("Soldier routes", () => {
+  let server: FastifyInstance;
+
+  let testSoldierId: string;
+
+  beforeAll(async () => {
+    server = await createServer();
+    await connectToDB();
+
+    const soldierToInsert = createSoldierDocument(testSoldier);
+    await insertSoldier(soldierToInsert);
+    testSoldierId = testSoldier._id!.toString();
+  });
+
+  afterAll(async () => {
+    await deleteSoldier(testSoldierId);
+    await closeDBConnection();
+  });
+
   describe("GET routes for soldiers", () => {
     it("Should return 200 when trying to get a soldier.", async () => {
       const response = await server.inject({
@@ -57,7 +61,6 @@ describe("Soldier routes", () => {
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
 
-    // check here
     it("Should return 200 when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",
@@ -68,7 +71,6 @@ describe("Soldier routes", () => {
       expect(response.json()).toHaveProperty("data");
     });
 
-    // check here
     it("Should return 200 and data: [] when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",

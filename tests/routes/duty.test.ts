@@ -2,9 +2,12 @@ import { ObjectId } from "mongodb";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import * as HttpStatus from "http-status-codes";
 
-import { initialize } from "../../src/app.js";
-import { close } from "../../src/server.js";
-import { client } from "../../src/db/connections.js";
+import { createServer } from "../../src/server.js";
+import {
+  client,
+  closeDBConnection,
+  connectToDB,
+} from "../../src/db/connections.js";
 import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
 import {
@@ -29,122 +32,130 @@ import {
 } from "../../src/collections/duty.js";
 import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty } from "../../src/collections/duty.js";
-
-let attackingIranDuty: Duty;
-let attackingIranId: ObjectId;
-
-let testDuty: Duty;
-let testDutyId: ObjectId;
-
-let secondGazaAttack: Duty;
-let secondGazaAttackId: ObjectId;
-
-let dutyInPastDuty: Duty;
-let dutyInPastId: ObjectId;
-
-let cancelledDuty: Duty;
-let cancelledDutyId: ObjectId;
-
-let toScheduleDuty: Duty;
-let toScheduleDutyId: ObjectId;
-
-let toCancelDuty: Duty;
-let toCancelDutyId: ObjectId;
-
-const server = await initialize();
-
-beforeAll(async () => {
-  attackingIranDuty = createDutyDocument(postWorkingPayload);
-  await insertDuty(attackingIranDuty);
-  const IranDuty = (await findOne<Duty & Document>(client, "duties", {
-    name: attackingIranDuty.name,
-  })) as Duty;
-  attackingIranId = IranDuty._id!;
-
-  testDuty = createDutyDocument(testPostWorkingPayload);
-  await insertDuty(testDuty);
-  const testDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
-    name: testDuty.name,
-  })) as Duty;
-  testDutyId = testDutyFromDb._id!;
-
-  const updateData = { status: "scheduled" } as Partial<Duty>;
-  await updateDuty(testDutyId.toString(), updateData);
-
-  secondGazaAttack = createDutyDocument(secondTestPostWorkingPayload);
-  await insertDuty(secondGazaAttack);
-  const secondTestDutyFromDb = (await findOne<Duty & Document>(
-    client,
-    "duties",
-    {
-      name: secondGazaAttack.name,
-    }
-  )) as Duty;
-  secondGazaAttackId = secondTestDutyFromDb._id!;
-
-  dutyInPastDuty = createDutyDocument(dutyInPast);
-  await insertDuty(dutyInPastDuty);
-
-  const pastDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
-    name: dutyInPastDuty.name,
-  })) as Duty;
-  dutyInPastId = pastDutyFromDb._id!;
-
-  cancelledDuty = createDutyDocument(cancelledDutyPayload);
-  await insertDuty(cancelledDuty);
-
-  const cancelledDutyFromDb = (await findOne<Duty & Document>(
-    client,
-    "duties",
-    {
-      name: cancelledDuty.name,
-    }
-  )) as Duty;
-  cancelledDutyId = cancelledDutyFromDb._id!;
-
-  const cancelUpdateData = { status: "canceled" } as Partial<Duty>;
-  await updateDuty(cancelledDutyId.toString(), cancelUpdateData);
-
-  toScheduleDuty = createDutyDocument(scheduleDutyPayload);
-  await insertDuty(toScheduleDuty);
-
-  const toScheduleDutyFromDb = (await findOne<Duty & Document>(
-    client,
-    "duties",
-    {
-      name: toScheduleDuty.name,
-    }
-  )) as Duty;
-  toScheduleDutyId = toScheduleDutyFromDb._id!;
-
-  toCancelDuty = createDutyDocument(cancelDutyPayload);
-  await insertDuty(toCancelDuty);
-
-  const toCancelDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
-    name: toCancelDuty.name,
-  })) as Duty;
-  toCancelDutyId = toCancelDutyFromDb._id!;
-});
-
-afterAll(async () => {
-  await deleteDuty(testDutyId.toString());
-  await deleteDuty(secondGazaAttackId.toString());
-  await deleteDuty(dutyInPastId.toString());
-  await deleteDuty(cancelledDutyId.toString());
-  await deleteDuty(toScheduleDutyId.toString());
-  await deleteDuty(toCancelDutyId.toString());
-
-  const testDutyToDelete = await findManyDuties({
-    name: testPostWorkingPayload.name,
-  });
-  const idToDelete = testDutyToDelete[0]._id!;
-
-  await deleteDuty(idToDelete.toString());
-
-  await close(server);
-});
+import { FastifyInstance } from "fastify";
 
 describe("Duty routes", () => {
+  let attackingIranDuty: Duty;
+  let attackingIranId: ObjectId;
+
+  let testDuty: Duty;
+  let testDutyId: ObjectId;
+
+  let secondGazaAttack: Duty;
+  let secondGazaAttackId: ObjectId;
+
+  let dutyInPastDuty: Duty;
+  let dutyInPastId: ObjectId;
+
+  let cancelledDuty: Duty;
+  let cancelledDutyId: ObjectId;
+
+  let toScheduleDuty: Duty;
+  let toScheduleDutyId: ObjectId;
+
+  let toCancelDuty: Duty;
+  let toCancelDutyId: ObjectId;
+
+  let server: FastifyInstance;
+
+  beforeAll(async () => {
+    server = await createServer();
+    await connectToDB();
+
+    attackingIranDuty = createDutyDocument(postWorkingPayload);
+    await insertDuty(attackingIranDuty);
+    const IranDuty = (await findOne<Duty & Document>(client, "duties", {
+      name: attackingIranDuty.name,
+    })) as Duty;
+    attackingIranId = IranDuty._id!;
+
+    testDuty = createDutyDocument(testPostWorkingPayload);
+    await insertDuty(testDuty);
+    const testDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
+      name: testDuty.name,
+    })) as Duty;
+    testDutyId = testDutyFromDb._id!;
+
+    const updateData = { status: "scheduled" } as Partial<Duty>;
+    await updateDuty(testDutyId.toString(), updateData);
+
+    secondGazaAttack = createDutyDocument(secondTestPostWorkingPayload);
+    await insertDuty(secondGazaAttack);
+    const secondTestDutyFromDb = (await findOne<Duty & Document>(
+      client,
+      "duties",
+      {
+        name: secondGazaAttack.name,
+      }
+    )) as Duty;
+    secondGazaAttackId = secondTestDutyFromDb._id!;
+
+    dutyInPastDuty = createDutyDocument(dutyInPast);
+    await insertDuty(dutyInPastDuty);
+
+    const pastDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
+      name: dutyInPastDuty.name,
+    })) as Duty;
+    dutyInPastId = pastDutyFromDb._id!;
+
+    cancelledDuty = createDutyDocument(cancelledDutyPayload);
+    await insertDuty(cancelledDuty);
+
+    const cancelledDutyFromDb = (await findOne<Duty & Document>(
+      client,
+      "duties",
+      {
+        name: cancelledDuty.name,
+      }
+    )) as Duty;
+    cancelledDutyId = cancelledDutyFromDb._id!;
+
+    const cancelUpdateData = { status: "canceled" } as Partial<Duty>;
+    await updateDuty(cancelledDutyId.toString(), cancelUpdateData);
+
+    toScheduleDuty = createDutyDocument(scheduleDutyPayload);
+    await insertDuty(toScheduleDuty);
+
+    const toScheduleDutyFromDb = (await findOne<Duty & Document>(
+      client,
+      "duties",
+      {
+        name: toScheduleDuty.name,
+      }
+    )) as Duty;
+    toScheduleDutyId = toScheduleDutyFromDb._id!;
+
+    toCancelDuty = createDutyDocument(cancelDutyPayload);
+    await insertDuty(toCancelDuty);
+
+    const toCancelDutyFromDb = (await findOne<Duty & Document>(
+      client,
+      "duties",
+      {
+        name: toCancelDuty.name,
+      }
+    )) as Duty;
+    toCancelDutyId = toCancelDutyFromDb._id!;
+  });
+
+  afterAll(async () => {
+    await deleteDuty(testDutyId.toString());
+    await deleteDuty(secondGazaAttackId.toString());
+    await deleteDuty(dutyInPastId.toString());
+    await deleteDuty(cancelledDutyId.toString());
+    await deleteDuty(toScheduleDutyId.toString());
+    await deleteDuty(toCancelDutyId.toString());
+
+    const testDutyToDelete = await findManyDuties({
+      name: testPostWorkingPayload.name,
+    });
+    const idToDelete = testDutyToDelete[0]._id!;
+
+    await deleteDuty(idToDelete.toString());
+
+    await closeDBConnection();
+  });
+
   describe("GET routes for duties", () => {
     it("Should return 200 when trying to get existing duties.", async () => {
       const response = await server.inject({

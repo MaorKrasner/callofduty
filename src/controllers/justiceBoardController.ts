@@ -6,7 +6,6 @@ import {
   aggregateJusticeBoardById,
 } from "../collections/justice-board.js";
 import { findSoldier } from "../collections/soldier.js";
-import type { justiceBoardElement } from "../types/justice-board.js";
 
 export const getJusticeBoard = async (
   request: FastifyRequest,

@@ -18,7 +18,7 @@ export const connectToDB = async () => {
   }
 };
 
-export const closeDBConnection = async (client: MongoClient) => {
+export const closeDBConnection = async () => {
   await client.close();
   logger.info("MongoDB connection closed");
   return "Connection closed";
