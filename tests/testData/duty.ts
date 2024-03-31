@@ -32,6 +32,22 @@ export const testPostWorkingPayload: Partial<Duty> = {
   maxRank: 6,
 };
 
+export const dutyInPast: Partial<Duty> = {
+  name: "Duty in the past",
+  description: "Test duty for past times",
+  location: {
+    type: "Point",
+    coordinates: [27.54, 9.63],
+  },
+  startTime: new Date("2024-03-30T09:00:30.500Z"),
+  endTime: new Date("2024-03-31T09:00:30.500Z"),
+  value: 5,
+  constraints: ["dust"],
+  soldiersRequired: 10,
+  minRank: 1,
+  maxRank: 6,
+};
+
 export const secondTestPostWorkingPayload: Partial<Duty> = {
   name: "attacking gaza 2.0",
   description: "attacking gaza's terrorists",
@@ -48,38 +64,53 @@ export const secondTestPostWorkingPayload: Partial<Duty> = {
   maxRank: 6,
 };
 
-export const putScheduleNotWorkingPayloads: Partial<Duty>[] = [
-  {
-    name: "schedule test 1",
-    description: "schedule test 1 - scheduled duty",
-    location: {
-      type: "Point",
-      coordinates: [14.7, 6.33],
-    },
-    startTime: new Date("2024-04-15T10:00:30.500Z"),
-    endTime: new Date("2024-05-20T14:00:30.500Z"),
-    value: 25,
-    constraints: ["massive attack", "secret operation", "big explosions"],
-    soldiersRequired: 130,
-    minRank: 1,
-    maxRank: 6,
+export const cancelledDutyPayload: Partial<Duty> = {
+  name: "schedule test 2",
+  description: "schedule test 2 - cancelled duty",
+  location: {
+    type: "Point",
+    coordinates: [14.7, 6.33],
   },
-  {
-    name: "schedule test 2",
-    description: "schedule test 2 - cancelled duty",
-    location: {
-      type: "Point",
-      coordinates: [14.7, 6.33],
-    },
-    startTime: new Date("2024-04-15T10:00:30.500Z"),
-    endTime: new Date("2024-05-20T14:00:30.500Z"),
-    value: 25,
-    constraints: ["massive attack", "secret operation", "big explosions"],
-    soldiersRequired: 130,
-    minRank: 1,
-    maxRank: 6,
+  startTime: new Date("2024-04-15T10:00:30.500Z"),
+  endTime: new Date("2024-05-20T14:00:30.500Z"),
+  value: 25,
+  constraints: ["massive attack", "secret operation", "big explosions"],
+  soldiersRequired: 130,
+  minRank: 1,
+  maxRank: 6,
+};
+
+export const scheduleDutyPayload: Partial<Duty> = {
+  name: "schedule test",
+  description: "schedule test duty",
+  location: {
+    type: "Point",
+    coordinates: [14.7, 6.33],
   },
-];
+  startTime: new Date("2024-04-15T10:00:30.500Z"),
+  endTime: new Date("2024-05-20T14:00:30.500Z"),
+  value: 10,
+  constraints: ["massive attack", "secret operation"],
+  soldiersRequired: 20,
+  minRank: 1,
+  maxRank: 6,
+};
+
+export const cancelDutyPayload: Partial<Duty> = {
+  name: "cancel test",
+  description: "cancel test duty",
+  location: {
+    type: "Point",
+    coordinates: [14.7, 6.33],
+  },
+  startTime: new Date("2024-04-15T10:00:30.500Z"),
+  endTime: new Date("2024-05-20T14:00:30.500Z"),
+  value: 10,
+  constraints: ["massive attack"],
+  soldiersRequired: 20,
+  minRank: 1,
+  maxRank: 6,
+};
 
 export const putPayload = {
   constraints: ["big area", "windy", "shabbat closing"],
