@@ -7,20 +7,15 @@ import {
   dutyGetFilterSchema,
 } from "../schemas/dutySchemas.js";
 import { type Duty } from "../types/duty.js";
-import { type Soldier } from "../types/soldier.js";
 import logger from "../logger.js";
 import {
   addConstraintsToDuty,
   deleteDuty,
-  findAllDuties,
   findDuty,
   findManyDuties,
   insertDuty,
   updateDuty,
 } from "../collections/duty.js";
-import { findAllSoldiers } from "../collections/soldier.js";
-import { aggregateJusticeBoard } from "../collections/justice-board.js";
-import { justiceBoardElement } from "../types/justice-board.js";
 import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
 
