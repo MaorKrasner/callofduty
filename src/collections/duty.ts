@@ -79,6 +79,7 @@ export const findManyDuties = async (filter: {
   value?: number;
   minRank?: number;
   maxRank?: number;
+  soldiers?: string[];
 }) => {
   const filtersArray: any = [];
 
@@ -86,10 +87,15 @@ export const findManyDuties = async (filter: {
     filtersArray.push({ name: filter.name });
   }
 
-  logger.info(`Filter.location : ${filter.location}`);
   if (filter.location) {
     filtersArray.push({
       "location.coordinates": { $all: filter.location },
+    });
+  }
+
+  if (filter.soldiers) {
+    filtersArray.push({
+      soldiers: { $all: filter.soldiers },
     });
   }
 
