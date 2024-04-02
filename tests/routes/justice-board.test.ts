@@ -94,6 +94,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: "/justice-board",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -116,6 +119,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -135,6 +141,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -158,6 +167,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -177,6 +189,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${secondTestSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(secondTestSoldierId);
@@ -192,6 +207,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${notFoundSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);

@@ -161,6 +161,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/duties?name=${attackingIranDuty.name}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -171,6 +174,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/duties/${attackingIranId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -181,6 +187,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/duties?${notWorkingUrlParameter}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -191,6 +200,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/duties/${notFoundDutyId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -203,6 +215,9 @@ describe("Duty routes", () => {
         method: "POST",
         url: "/duties",
         payload: testPostWorkingPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
@@ -215,6 +230,9 @@ describe("Duty routes", () => {
         method: "POST",
         url: "/duties",
         payload: patchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -227,6 +245,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/duties/${attackingIranId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NO_CONTENT);
@@ -237,6 +258,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/duties/${testDutyId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -246,6 +270,9 @@ describe("Duty routes", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/duties/${notFoundDutyId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -260,6 +287,9 @@ describe("Duty routes", () => {
         method: "PATCH",
         url: `/duties/${secondGazaAttackId}`,
         payload: patchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const dutyAfterUpdate = response.json() as Duty;
@@ -275,6 +305,9 @@ describe("Duty routes", () => {
         method: "PATCH",
         url: `/duties/${testDutyId}`,
         payload: patchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -285,6 +318,9 @@ describe("Duty routes", () => {
         method: "PATCH",
         url: `/duties/${secondGazaAttackId}`,
         payload: notWorkingPatchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -298,6 +334,9 @@ describe("Duty routes", () => {
         method: "PATCH",
         url: `/duties/${notFoundDutyId}`,
         payload: patchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -313,6 +352,9 @@ describe("Duty routes", () => {
           method: "PUT",
           url: `/duties/${secondGazaAttackId}/constraints`,
           payload: putPayload,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         const dutyAfterUpdate = response.json() as Duty;
@@ -328,6 +370,9 @@ describe("Duty routes", () => {
           method: "PUT",
           url: `/duties/${notFoundDutyId}/constraints`,
           payload: putPayload,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -339,6 +384,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${toScheduleDutyId}/schedule`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         const dutyAfterSchedule = await findDuty(toScheduleDutyId.toString());
@@ -355,6 +403,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${testDutyId}/schedule`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -367,6 +418,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${cancelledDutyId}/schedule`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -379,6 +433,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${dutyInPastId}/schedule`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -391,6 +448,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${notFoundDutyId}/schedule`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -402,6 +462,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${toCancelDutyId}/cancel`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         const dutyAfterCancel = await findDuty(toCancelDutyId.toString());
@@ -420,6 +483,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${cancelledDutyId}/cancel`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -432,6 +498,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${dutyInPastId}/cancel`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -444,6 +513,9 @@ describe("Duty routes", () => {
         const response = await server.inject({
           method: "PUT",
           url: `duties/${notFoundDutyId}/cancel`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);

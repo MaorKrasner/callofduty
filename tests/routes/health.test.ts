@@ -22,6 +22,9 @@ describe("Health routes", () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -32,6 +35,9 @@ describe("Health routes", () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
