@@ -103,6 +103,7 @@ export const dutyGetFilterSchema = z
     value: z.optional(z.number().positive()),
     minRank: z.optional(z.number().min(0).max(6)),
     maxRank: z.optional(z.number().min(0).max(6)),
+    soldiers: z.optional(z.array(z.string())),
   })
   .strict()
   .refine((obj) => {
