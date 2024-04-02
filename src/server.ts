@@ -15,7 +15,7 @@ import justiceBoardRoutes from "./routes/justiceBoardRoutes.js";
 import logger from "./logger.js";
 import soldierRoutes from "./routes/soldierRoutes.js";
 
-const basicAuthMiddleware = async (
+export const basicAuthMiddleware = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
@@ -46,41 +46,7 @@ const basicAuthMiddleware = async (
 const createServer = async () => {
   const server = fastify({ logger: true });
 
-  server.decorate("basicAuthMiddleware", basicAuthMiddleware);
-
-  server.get(
-    "/",
-    { preHandler: basicAuthMiddleware },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      return "Authenticated!";
-    }
-  );
-
-  /*
-  // Define mock users (replace this with your actual user data)
-  const users: { [key: string]: string } = {
-    admin: "password",
-  };
-
-  // Register fastify-basic-auth plugin
-  server.register(fastifyBasicAuth, {
-    authenticate: async (username: string, password: string) => {
-      const isValidUser = users[username] === password;
-      return { isValid: isValidUser };
-    },
-    authenticateErrorHandler: (
-      error: unknown,
-      request: FastifyRequest,
-      reply: FastifyReply
-    ) => {
-      reply.status(401).send({ error: "Unauthorized" });
-    },
-  });
-
-  server.get('/protected-route', { preHandler: server.auth([server.basicAuth]) }, (request, reply) => {
-    reply.send('You are authenticated!');
-  });
-  */
+  server.addHook("onRequest", basicAuthMiddleware);
 
   server.register(fastifyUnderPressure, {
     maxEventLoopDelay: 1000,
@@ -95,15 +61,6 @@ const createServer = async () => {
     max: 100,
     timeWindow: "1 minute",
   });
-
-  /*
-  server.register(fastifyBasicAuth);
-
-  const users = {
-    admin: "adminpassword",
-    user: "userpassword",
-  };
-  */
 
   server.register(fastifySwagger, {
     openapi: {
@@ -138,25 +95,6 @@ const createServer = async () => {
       },
     },
   });
-
-  /*
-  await server.register(fastifySwagger, {
-    routePrefix: "/documentation",
-    swagger: {
-      info: {
-        title: "My API Documentation",
-        description: "A documentation for my API",
-        version: "1.0.0",
-      },
-      externalDocs: {
-        url: "https://swagger.io",
-        description: "Find more info here",
-      },
-      consumes: ["application/json"],
-      produces: ["application/json"],
-    },
-  });
-  */
 
   healthRoutes(server);
 
