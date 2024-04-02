@@ -18,6 +18,7 @@ import {
 } from "../collections/duty.js";
 import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
+import { soldiers } from "../seeds/seedData.js";
 
 export const schedule = async (id: string, duty: Duty) => {
   const justiceBoard = await calculateJusticeBoardWithSchedulingLogic(duty);
@@ -115,7 +116,7 @@ export const getDutiesByFilters = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const { location, constraints, ...filter } = request.query as {
+  const { location, constraints, soldiers, ...filter } = request.query as {
     name?: string;
     location?: string;
     startTime?: Date;
@@ -125,6 +126,7 @@ export const getDutiesByFilters = async (
     value?: number;
     minRank?: number;
     maxRank?: number;
+    soldiers?: string;
   };
 
   const schemaResult = validateSchema(dutyGetFilterSchema, {
@@ -141,6 +143,7 @@ export const getDutiesByFilters = async (
 
   let constraintsAsStringArray: string[] | undefined = undefined;
   let locationAsNumberArray: number[] | undefined = undefined;
+  let soldiersAsStringArray: string[] | undefined = undefined;
 
   if (constraints) {
     constraintsAsStringArray = constraints.split(",");
@@ -150,6 +153,10 @@ export const getDutiesByFilters = async (
     locationAsNumberArray = location
       .split(",")
       .map((coordinate) => parseFloat(coordinate));
+  }
+
+  if (soldiers) {
+    soldiersAsStringArray = soldiers.split(",");
   }
 
   const filteredDuties = await findManyDuties({
