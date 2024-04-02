@@ -7,11 +7,9 @@ The project does basic operations like creating/deleting/changing new soldier/du
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [Features](#features)
 - [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
 - [Credits](#credits)
+- [License](#license)
 
 ## Installation
 
