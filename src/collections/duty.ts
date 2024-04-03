@@ -79,6 +79,8 @@ export const findManyDuties = async (filter: {
   value?: number;
   minRank?: number;
   maxRank?: number;
+  description?: string;
+  status?: string;
   soldiers?: string[];
 }) => {
   const filtersArray: any = [];
@@ -127,6 +129,14 @@ export const findManyDuties = async (filter: {
 
   if (filter.maxRank) {
     filtersArray.push({ maxRank: parseInt(String(filter.maxRank)) });
+  }
+
+  if (filter.description) {
+    filtersArray.push({ description: filter.description });
+  }
+
+  if (filter.status) {
+    filtersArray.push({ status: filter.status });
   }
 
   const combinedFilter = filtersArray.length > 0 ? { $and: filtersArray } : {};
