@@ -14,11 +14,12 @@ import {
   findDuty,
   findManyDuties,
   insertDuty,
+  sortDutiesWithFilter,
   updateDuty,
 } from "../collections/duty.js";
 import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
-import { soldiers } from "../seeds/seedData.js";
+import { sortingSchema } from "../schemas/sortingSchemas.js";
 
 export const schedule = async (id: string, duty: Duty) => {
   const justiceBoard = await calculateJusticeBoardWithSchedulingLogic(duty);
@@ -360,4 +361,49 @@ export const putCancelById = async (
   }
 
   return await reply.code(HttpStatus.StatusCodes.OK).send(cancelledDuty);
+};
+
+export const sortDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...sortingFilter } = request.query as {
+    sort: string;
+    order: string;
+  };
+
+  logger.info(`Sorting filter: ${sortingFilter}`);
+
+  const schemaResult = validateSchema(sortingSchema, sortingFilter);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema` });
+  }
+
+  const sortedDuties = await sortDutiesWithFilter(
+    sortingFilter.sort,
+    sortingFilter.order
+  );
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(sortedDuties);
+};
+
+export const handleGetFilterFunctions = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  logger.info("INSIDE!!!");
+  const { sort, order } = request.query as { sort?: string; order?: string };
+
+  logger.info(`sort: ${sort}`);
+  logger.info(`order: ${order}`);
+
+  if (sort && order) {
+    logger.info("Hi");
+    return await sortDuties(request, reply);
+  }
+
+  return await getDutiesByFilters(request, reply);
 };
