@@ -1,7 +1,8 @@
-import { ObjectId, UpdateFilter } from "mongodb";
+import { ObjectId, SortDirection, UpdateFilter } from "mongodb";
 
 import { client } from "../db/connections.js";
 import {
+  aggregate,
   deleteMany,
   deleteOne,
   findAll,
@@ -163,4 +164,15 @@ export const addConstraintsToDuty = async (
   );
 
   return updatedResult.modifiedCount > 0 ? await findDuty(id) : undefined;
+};
+
+export const sortDutiesWithFilter = async (sort: string, order: string) => {
+  const sortOrderAsNumber = order === "ascend" ? 1 : -1;
+  const sortedDuties = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    [{ $sort: { [sort]: sortOrderAsNumber } }]
+  );
+
+  return sortedDuties as Duty[];
 };
