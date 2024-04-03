@@ -9,11 +9,12 @@ import {
   putScheduleById,
   putCancelById,
   updateDutyById,
+  handleGetFilterFunctions,
 } from "../controllers/dutyController.js";
 
 const dutyRoutes = async (server: FastifyInstance) => {
   server.post("/duties", createDuty);
-  server.get("/duties", getDutiesByFilters);
+  server.get("/duties", handleGetFilterFunctions);
   server.get("/duties/:id", getDutyById);
   server.delete("/duties/:id", deleteDutyById);
   server.patch("/duties/:id", updateDutyById);
