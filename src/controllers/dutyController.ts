@@ -126,6 +126,8 @@ export const getDutiesByFilters = async (
     value?: number;
     minRank?: number;
     maxRank?: number;
+    description?: string;
+    status?: string;
     soldiers?: string;
   };
 
@@ -163,6 +165,7 @@ export const getDutiesByFilters = async (
     ...filter,
     constraints: constraintsAsStringArray,
     location: locationAsNumberArray,
+    soldiers: soldiersAsStringArray,
   });
 
   await reply.code(HttpStatus.StatusCodes.OK).send({ data: filteredDuties });
