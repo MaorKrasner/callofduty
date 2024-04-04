@@ -7,6 +7,7 @@ import {
   findManySoldiers,
   findSoldier,
   insertSoldier,
+  sortSoldiersWithFilter,
   updateSoldier,
 } from "../collections/soldier.js";
 import { type Soldier } from "../types/soldier.js";
@@ -16,6 +17,7 @@ import {
   soldierGetFilterSchema,
 } from "../schemas/soldierSchemas.js";
 import { validateSchema } from "../schemas/validator.js";
+import { sortingSchema } from "../schemas/useableSchemas.js";
 
 export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
@@ -179,4 +181,48 @@ export const updateSoldierById = async (
   }
 
   return await reply.status(HttpStatus.StatusCodes.OK).send(newSoldier);
+};
+
+export const sortSoldiers = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const validSortFilters = [
+    "_id",
+    "name",
+    "rank.value",
+    "createdAt",
+    "updatedAt",
+  ];
+
+  const { ...sortingFilter } = request.query as {
+    sort: string;
+    order: string;
+  };
+
+  const schemaResult = validateSchema(sortingSchema, sortingFilter);
+
+  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort)) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema` });
+  }
+
+  const sortedSoldiers = await sortSoldiersWithFilter(
+    sortingFilter.sort,
+    sortingFilter.order
+  );
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(sortedSoldiers);
+};
+
+export const handleGetFilterFunctions = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { sort, order } = request.query as { sort?: string; order?: string };
+
+  return sort && order
+    ? await sortSoldiers(request, reply)
+    : await getSoldiersByFilters(request, reply);
 };

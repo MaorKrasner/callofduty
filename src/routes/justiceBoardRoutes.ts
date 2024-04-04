@@ -1,12 +1,12 @@
 import { FastifyInstance } from "fastify";
 
 import {
-  getJusticeBoard,
   getJusticeBoardById,
+  handleJusticeBoardRoute,
 } from "../controllers/justiceBoardController.js";
 
 const justiceBoardRoutes = async (server: FastifyInstance) => {
-  server.get("/justice-board", getJusticeBoard);
+  server.get("/justice-board", handleJusticeBoardRoute);
   server.get("/justice-board/:id", getJusticeBoardById);
 };
 

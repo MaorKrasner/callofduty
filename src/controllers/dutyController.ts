@@ -19,7 +19,12 @@ import {
 } from "../collections/duty.js";
 import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
-import { sortingSchema } from "../schemas/sortingSchemas.js";
+import {
+  mongoSignsParsingDictionary,
+  queryFilteringSchema,
+  sortingSchema,
+} from "../schemas/useableSchemas.js";
+import { object } from "zod";
 
 export const schedule = async (id: string, duty: Duty) => {
   const justiceBoard = await calculateJusticeBoardWithSchedulingLogic(duty);
@@ -367,16 +372,29 @@ export const sortDuties = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const validSortFilters = [
+    "_id",
+    "name",
+    "description",
+    "location",
+    "startTime",
+    "endTime",
+    "minRank",
+    "maxRank",
+    "soldiersRequired",
+    "value",
+    "createdAt",
+    "updatedAt",
+  ];
+
   const { ...sortingFilter } = request.query as {
     sort: string;
     order: string;
   };
 
-  logger.info(`Sorting filter: ${sortingFilter}`);
-
   const schemaResult = validateSchema(sortingSchema, sortingFilter);
 
-  if (!schemaResult) {
+  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort)) {
     return await reply
       .code(HttpStatus.StatusCodes.BAD_REQUEST)
       .send({ error: `Failed to pass schema` });
@@ -390,20 +408,34 @@ export const sortDuties = async (
   return await reply.code(HttpStatus.StatusCodes.OK).send(sortedDuties);
 };
 
+export const filterDutiesByQueries = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    filter: string;
+  };
+
+  const schemaResult = validateSchema(queryFilteringSchema, query);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  let [field, operator, valueStr] = query.filter.split(/(?<=<|>|=|<=|>=|>|<)/);
+
+  operator = Object.values(mongoSignsParsingDictionary).find(operator);
+};
+
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  logger.info("INSIDE!!!");
   const { sort, order } = request.query as { sort?: string; order?: string };
 
-  logger.info(`sort: ${sort}`);
-  logger.info(`order: ${order}`);
-
-  if (sort && order) {
-    logger.info("Hi");
-    return await sortDuties(request, reply);
-  }
-
-  return await getDutiesByFilters(request, reply);
+  return sort && order
+    ? await sortDuties(request, reply)
+    : await getDutiesByFilters(request, reply);
 };

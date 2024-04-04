@@ -1,6 +1,7 @@
 import { UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
+  aggregate,
   deleteMany,
   deleteOne,
   findAll,
@@ -105,4 +106,15 @@ export const updateSoldier = async (id: string, data: Partial<Soldier>) => {
   );
 
   return updateResult.modifiedCount > 0 ? await findSoldier(id) : undefined;
+};
+
+export const sortSoldiersWithFilter = async (sort: string, order: string) => {
+  const sortOrderAsNumber = order === "ascend" ? 1 : -1;
+  const sortedSoldiers = await aggregate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    [{ $sort: { [sort]: sortOrderAsNumber } }]
+  );
+
+  return sortedSoldiers as Soldier[];
 };
