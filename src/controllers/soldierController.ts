@@ -5,9 +5,11 @@ import logger from "../logger.js";
 import {
   deleteSoldier,
   filterSoldiers,
+  findAllSoldiers,
   findManySoldiers,
   findSoldier,
   insertSoldier,
+  skipSoldiers,
   sortSoldiersWithFilter,
   updateSoldier,
 } from "../collections/soldier.js";
@@ -20,6 +22,7 @@ import {
 import { validateSchema } from "../schemas/validator.js";
 import {
   mongoSignsParsingDictionary,
+  paginationSchema,
   queryFilteringSchema,
   sortingSchema,
 } from "../schemas/useableSchemas.js";
@@ -250,16 +253,52 @@ export const filterSoldiersByQueries = async (
   return await reply.code(HttpStatus.StatusCodes.OK).send(filteredSoldiers);
 };
 
+export const paginateSoldiers = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    page?: string;
+    limit?: string;
+  };
+
+  const page = Number(query.page!);
+  const limit = Number(query.limit!);
+
+  const schemaResult = validateSchema(paginationSchema, { page, limit });
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const startIndex = (page - 1) * limit;
+
+  const soldiers = await skipSoldiers(startIndex, limit);
+
+  const amountOfSoldiers = (await findAllSoldiers()).length;
+
+  const totalPages = Math.ceil(amountOfSoldiers / limit);
+
+  return await reply
+    .code(HttpStatus.StatusCodes.OK)
+    .send({ page: page, totalPages: totalPages, soldiers });
+};
+
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const { filter } = request.query as { filter?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
+  const { page, limit } = request.query as { page?: string; limit?: string };
 
   return filter
     ? await filterSoldiersByQueries(request, reply)
     : sort && order
     ? await sortSoldiers(request, reply)
+    : page && limit
+    ? await paginateSoldiers(request, reply)
     : await getSoldiersByFilters(request, reply);
 };

@@ -10,6 +10,7 @@ import { findSoldier } from "../collections/soldier.js";
 import { validateSchema } from "../schemas/validator.js";
 import {
   mongoSignsParsingDictionary,
+  paginationSchema,
   sortingSchema,
 } from "../schemas/useableSchemas.js";
 import logger from "../logger.js";
@@ -98,34 +99,61 @@ export const filterJusticeBoard = async (
 
   let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
 
-  const value = Number(valueStr);
+  logger.info(`Field: ${field}`);
+  logger.info(`ValueStr: ${valueStr}`);
 
-  let justiceBoard = await aggregateJusticeBoard();
+  operator = mongoSignsParsingDictionary[operator];
 
-  logger.info(`Justice board: ${JSON.stringify(justiceBoard)}`);
+  logger.info(`Operator: ${operator}`);
 
-  switch (operator) {
-    case ">=":
-      justiceBoard = justiceBoard.filter((element) => element.score >= value);
-      break;
-    case "<=":
-      justiceBoard = justiceBoard.filter((element) => element.score <= value);
-      break;
-    case ">":
-      justiceBoard = justiceBoard.filter((element) => element.score > value);
-      break;
-    case "<":
-      justiceBoard = justiceBoard.filter((element) => element.score < value);
-      break;
-    case "=":
-      justiceBoard = justiceBoard.filter((element) => element.score === value);
-      break;
-    default:
-      logger.info("Default case.");
-      break;
+  const filteredJusticeBoard = await filterJusticeBoardByQuery(
+    operator,
+    Number(valueStr)
+  );
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(filteredJusticeBoard);
+};
+
+export const paginateJusticeBoard = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    page?: string;
+    limit?: string;
+  };
+
+  const page = Number(query.page!);
+  const limit = Number(query.limit!);
+
+  const schemaResult = validateSchema(paginationSchema, { page, limit });
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
   }
 
-  return await reply.code(HttpStatus.StatusCodes.OK).send(justiceBoard);
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+
+  // I don't know why but every time I aggregate the justice board, the order of the elements is not constant...
+  // For this task only, I just sort the justice board by id so the order will be constant.
+  let justiceBoard = await aggregateJusticeBoard();
+
+  justiceBoard = justiceBoard.sort((a, b) => {
+    return a._id.localeCompare(b._id);
+  });
+
+  const justiceBoardPage = justiceBoard.slice(startIndex, endIndex);
+
+  const amountOfJusticeBoardElements = justiceBoard.length;
+
+  const totalPages = Math.ceil(amountOfJusticeBoardElements / limit);
+
+  return await reply
+    .code(HttpStatus.StatusCodes.OK)
+    .send({ page: page, totalPages: totalPages, justiceBoardPage });
 };
 
 export const handleJusticeBoardRoute = async (
@@ -134,10 +162,13 @@ export const handleJusticeBoardRoute = async (
 ) => {
   const { filter } = request.query as { filter?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
+  const { page, limit } = request.query as { page?: string; limit?: string };
 
   return filter
     ? await filterJusticeBoard(request, reply)
     : sort && order
-    ? sortJusticeBoard(request, reply)
+    ? await sortJusticeBoard(request, reply)
+    : page && limit
+    ? await paginateJusticeBoard(request, reply)
     : await getJusticeBoard(request, reply);
 };

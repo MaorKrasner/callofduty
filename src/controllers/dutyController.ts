@@ -12,9 +12,11 @@ import {
   addConstraintsToDuty,
   deleteDuty,
   filterDuties,
+  findAllDuties,
   findDuty,
   findManyDuties,
   insertDuty,
+  skipDuties,
   sortDutiesWithFilter,
   updateDuty,
 } from "../collections/duty.js";
@@ -22,6 +24,8 @@ import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
 import {
   mongoSignsParsingDictionary,
+  paginationSchema,
+  projectionSchema,
   queryFilteringSchema,
   sortingSchema,
 } from "../schemas/useableSchemas.js";
@@ -434,16 +438,72 @@ export const filterDutiesByQueries = async (
   return await reply.code(HttpStatus.StatusCodes.OK).send(filteredDuties);
 };
 
+export const paginateDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    page?: string;
+    limit?: string;
+  };
+
+  const page = Number(query.page!);
+  const limit = Number(query.limit!);
+
+  const schemaResult = validateSchema(paginationSchema, { page, limit });
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const startIndex = (page - 1) * limit;
+
+  const duties = await skipDuties(startIndex, limit);
+
+  const amountOfDuties = (await findAllDuties()).length;
+
+  const totalPages = Math.ceil(amountOfDuties / limit);
+
+  return await reply
+    .code(HttpStatus.StatusCodes.OK)
+    .send({ page: page, totalPages: totalPages, duties });
+};
+
+export const projectDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { select } = request.query as { select?: string };
+
+  const schemaResult = validateSchema(projectionSchema, { select });
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const projectionParameters = select!.split(",");
+};
+
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const { filter } = request.query as { filter?: string };
+  const { select } = request.query as { select?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
+  const { page, limit } = request.query as { page?: string; limit?: string };
 
   return filter
     ? await filterDutiesByQueries(request, reply)
     : sort && order
     ? await sortDuties(request, reply)
+    : page && limit
+    ? await paginateDuties(request, reply)
+    : select
+    ? await projectDuties(request, reply)
     : await getDutiesByFilters(request, reply);
 };
