@@ -1,4 +1,4 @@
-import { ObjectId, SortDirection, UpdateFilter } from "mongodb";
+import { ObjectId, UpdateFilter } from "mongodb";
 
 import { client } from "../db/connections.js";
 import {
@@ -9,10 +9,11 @@ import {
   findMany,
   findOne,
   insertOne,
+  paginate,
+  project,
   updateOne,
 } from "../db/operations.js";
 import { type Duty } from "../types/duty.js";
-import logger from "../logger.js";
 
 const dutiesCollectionName = "duties";
 
@@ -189,4 +190,29 @@ export const filterDuties = async (
   );
 
   return findResult as Duty[];
+};
+
+export const skipDuties = async (startIndex: number, limit: number) => {
+  const dutiesAfterSkipping = await paginate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    startIndex,
+    limit
+  );
+
+  return dutiesAfterSkipping as Duty[];
+};
+
+export const projectDuties = async (projectionParams: string[]) => {
+  let query: [key: string]: string = {};
+  if (projectionParams.length > 0) {
+    projectionParams.forEach(field => {
+      query[field] = "1"
+    });
+  }
+  const dutiesAfterProjection = await project<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    query
+  )
 };
