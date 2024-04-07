@@ -16,6 +16,19 @@ export const queryFilteringSchema = z
   })
   .strict();
 
+export const paginationSchema = z
+  .object({
+    page: z.number().positive(),
+    limit: z.number().positive(),
+  })
+  .strict();
+
+export const projectionSchema = z
+  .object({
+    select: z.string().min(1),
+  })
+  .strict();
+
 export const mongoSignsParsingDictionary: { [key: string]: string } = {
   ">=": "$gte",
   "<=": "$lte",
