@@ -8,6 +8,7 @@ import {
   findMany,
   findOne,
   insertOne,
+  paginate,
   updateOne,
 } from "../db/operations.js";
 import { type Soldier } from "../types/soldier.js";
@@ -131,4 +132,15 @@ export const filterSoldiers = async (
   );
 
   return findResult as Soldier[];
+};
+
+export const skipSoldiers = async (startIndex: number, limit: number) => {
+  const soldiersAfterSkipping = await paginate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    startIndex,
+    limit
+  );
+
+  return soldiersAfterSkipping as Soldier[];
 };
