@@ -118,3 +118,17 @@ export const sortSoldiersWithFilter = async (sort: string, order: string) => {
 
   return sortedSoldiers as Soldier[];
 };
+
+export const filterSoldiers = async (
+  field: string,
+  operator: string,
+  value: number
+) => {
+  const findResult = await findMany<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    { [field]: { [operator]: value } }
+  );
+
+  return findResult as Soldier[];
+};

@@ -4,10 +4,15 @@ import * as HttpStatus from "http-status-codes";
 import {
   aggregateJusticeBoard,
   aggregateJusticeBoardById,
+  filterJusticeBoardByQuery,
 } from "../collections/justice-board.js";
 import { findSoldier } from "../collections/soldier.js";
 import { validateSchema } from "../schemas/validator.js";
-import { sortingSchema } from "../schemas/useableSchemas.js";
+import {
+  mongoSignsParsingDictionary,
+  sortingSchema,
+} from "../schemas/useableSchemas.js";
+import logger from "../logger.js";
 
 export const getJusticeBoard = async (
   request: FastifyRequest,
@@ -77,13 +82,62 @@ export const sortJusticeBoard = async (
   return await reply.code(HttpStatus.StatusCodes.OK).send(sortedJusticeBoard);
 };
 
+export const filterJusticeBoard = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    filter: string;
+  };
+
+  if (!query.filter.includes("score")) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
+
+  const value = Number(valueStr);
+
+  let justiceBoard = await aggregateJusticeBoard();
+
+  logger.info(`Justice board: ${JSON.stringify(justiceBoard)}`);
+
+  switch (operator) {
+    case ">=":
+      justiceBoard = justiceBoard.filter((element) => element.score >= value);
+      break;
+    case "<=":
+      justiceBoard = justiceBoard.filter((element) => element.score <= value);
+      break;
+    case ">":
+      justiceBoard = justiceBoard.filter((element) => element.score > value);
+      break;
+    case "<":
+      justiceBoard = justiceBoard.filter((element) => element.score < value);
+      break;
+    case "=":
+      justiceBoard = justiceBoard.filter((element) => element.score === value);
+      break;
+    default:
+      logger.info("Default case.");
+      break;
+  }
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(justiceBoard);
+};
+
 export const handleJusticeBoardRoute = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const { filter } = request.query as { filter?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
 
-  return sort && order
-    ? await sortJusticeBoard(request, reply)
+  return filter
+    ? await filterJusticeBoard(request, reply)
+    : sort && order
+    ? sortJusticeBoard(request, reply)
     : await getJusticeBoard(request, reply);
 };

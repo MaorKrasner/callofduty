@@ -4,6 +4,7 @@ import * as HttpStatus from "http-status-codes";
 import logger from "../logger.js";
 import {
   deleteSoldier,
+  filterSoldiers,
   findManySoldiers,
   findSoldier,
   insertSoldier,
@@ -17,7 +18,11 @@ import {
   soldierGetFilterSchema,
 } from "../schemas/soldierSchemas.js";
 import { validateSchema } from "../schemas/validator.js";
-import { sortingSchema } from "../schemas/useableSchemas.js";
+import {
+  mongoSignsParsingDictionary,
+  queryFilteringSchema,
+  sortingSchema,
+} from "../schemas/useableSchemas.js";
 
 export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
@@ -216,13 +221,45 @@ export const sortSoldiers = async (
   return await reply.code(HttpStatus.StatusCodes.OK).send(sortedSoldiers);
 };
 
+export const filterSoldiersByQueries = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { ...query } = request.query as {
+    filter: string;
+  };
+
+  const schemaResult = validateSchema(queryFilteringSchema, query);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
+
+  operator = mongoSignsParsingDictionary[operator];
+
+  const filteredSoldiers = await filterSoldiers(
+    field,
+    operator,
+    Number(valueStr)
+  );
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(filteredSoldiers);
+};
+
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const { filter } = request.query as { filter?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
 
-  return sort && order
+  return filter
+    ? await filterSoldiersByQueries(request, reply)
+    : sort && order
     ? await sortSoldiers(request, reply)
     : await getSoldiersByFilters(request, reply);
 };

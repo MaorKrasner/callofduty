@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 export const sortingSchema = z
   .object({
@@ -16,7 +16,7 @@ export const queryFilteringSchema = z
   })
   .strict();
 
-export const mongoSignsParsingDictionary = {
+export const mongoSignsParsingDictionary: { [key: string]: string } = {
   ">=": "$gte",
   "<=": "$lte",
   "=": "$eq",

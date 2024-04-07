@@ -176,3 +176,17 @@ export const sortDutiesWithFilter = async (sort: string, order: string) => {
 
   return sortedDuties as Duty[];
 };
+
+export const filterDuties = async (
+  field: string,
+  operator: string,
+  value: number
+) => {
+  const findResult = await findMany<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    { [field]: { [operator]: value } }
+  );
+
+  return findResult as Duty[];
+};

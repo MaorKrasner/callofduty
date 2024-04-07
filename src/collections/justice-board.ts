@@ -1,5 +1,6 @@
 import { client } from "../db/connections.js";
 import { aggregate } from "../db/operations.js";
+import logger from "../logger.js";
 import type { justiceBoardElement } from "../types/justice-board.js";
 
 const soldiersCollectionName = "soldiers";
@@ -59,4 +60,24 @@ export const aggregateJusticeBoardById = async (id: string) => {
   const aggregationArray = await calculateAggregation(cloneBasicFilter);
 
   return aggregationArray[0].score;
+};
+
+export const filterJusticeBoardByQuery = async (
+  field: string,
+  operator: string,
+  value: number
+) => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.unshift({
+    $match: { [field]: { [operator]: value } },
+  });
+
+  logger.info(
+    `cloneBasicFilter last element: ${JSON.stringify(cloneBasicFilter[0])}`
+  );
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
 };

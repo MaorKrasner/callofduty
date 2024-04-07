@@ -11,6 +11,7 @@ import logger from "../logger.js";
 import {
   addConstraintsToDuty,
   deleteDuty,
+  filterDuties,
   findDuty,
   findManyDuties,
   insertDuty,
@@ -424,18 +425,25 @@ export const filterDutiesByQueries = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  let [field, operator, valueStr] = query.filter.split(/(?<=<|>|=|<=|>=|>|<)/);
+  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
 
-  operator = Object.values(mongoSignsParsingDictionary).find(operator);
+  operator = mongoSignsParsingDictionary[operator];
+
+  const filteredDuties = await filterDuties(field, operator, Number(valueStr));
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(filteredDuties);
 };
 
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const { filter } = request.query as { filter?: string };
   const { sort, order } = request.query as { sort?: string; order?: string };
 
-  return sort && order
+  return filter
+    ? await filterDutiesByQueries(request, reply)
+    : sort && order
     ? await sortDuties(request, reply)
     : await getDutiesByFilters(request, reply);
 };
