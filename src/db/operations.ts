@@ -98,3 +98,30 @@ export const aggregate = async <P extends Document = Document>(
     .aggregate(filter)
     .toArray();
 };
+
+export const paginate = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  startIndex: number,
+  limitNumber: number
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find()
+    .skip(startIndex)
+    .limit(limitNumber)
+    .toArray();
+};
+
+export const project = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  query: Object
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find({}, query)
+    .toArray();
+};
