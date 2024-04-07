@@ -51,7 +51,7 @@ export const aggregateJusticeBoard = async () => {
 export const aggregateJusticeBoardById = async (id: string) => {
   const cloneBasicFilter = Array.from(basicFilter);
 
-  cloneBasicFilter.unshift({
+  cloneBasicFilter.push({
     $match: {
       _id: id,
     },
@@ -63,19 +63,16 @@ export const aggregateJusticeBoardById = async (id: string) => {
 };
 
 export const filterJusticeBoardByQuery = async (
-  field: string,
   operator: string,
   value: number
 ) => {
   const cloneBasicFilter = Array.from(basicFilter);
 
-  cloneBasicFilter.unshift({
-    $match: { [field]: { [operator]: value } },
+  cloneBasicFilter.push({
+    $match: {
+      score: { [operator]: value },
+    },
   });
-
-  logger.info(
-    `cloneBasicFilter last element: ${JSON.stringify(cloneBasicFilter[0])}`
-  );
 
   const aggregationArray = await calculateAggregation(cloneBasicFilter);
 
