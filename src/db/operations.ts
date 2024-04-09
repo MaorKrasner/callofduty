@@ -122,6 +122,7 @@ export const project = async <P extends Document = Document>(
   return await client
     .db(dbName)
     .collection<P>(collectionName)
-    .find({}, query)
+    .find({})
+    .project(query)
     .toArray();
 };

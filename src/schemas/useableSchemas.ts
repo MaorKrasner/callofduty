@@ -3,11 +3,16 @@ import { string, z } from "zod";
 export const sortingSchema = z
   .object({
     sort: z.string().min(1),
-    order: z.string(), // desc / ascend
+    order: z.string().optional(), // desc / ascend
   })
   .strict()
   .refine((obj) => {
-    return obj.order.length === 4 || obj.order.length === 6;
+    if (obj.order) {
+      const validOrders = ["desc", "ascend"];
+      return validOrders.includes(obj.order);
+    }
+
+    return true;
   });
 
 export const queryFilteringSchema = z
@@ -28,6 +33,11 @@ export const projectionSchema = z
     select: z.string().min(1),
   })
   .strict();
+
+export const nearDutiesSchema = z.object({
+  coordinates: z.array(z.number().positive()).length(2),
+  radiusAsNumber: z.number().positive(),
+});
 
 export const mongoSignsParsingDictionary: { [key: string]: string } = {
   ">=": "$gte",

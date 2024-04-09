@@ -55,7 +55,7 @@ export const duties: Partial<Duty>[] = [
     description: "Securing arab villages",
     location: {
       type: "Point",
-      coordinates: [1857.57, 264.54],
+      coordinates: [157.57, 64.54],
     },
     startTime: new Date("2028-04-04T18:45:30.500Z"),
     endTime: new Date("2028-04-11T10:45:30.500Z"),
@@ -70,7 +70,7 @@ export const duties: Partial<Duty>[] = [
     description: "Hanfatzot",
     location: {
       type: "Point",
-      coordinates: [693.45, 462.45],
+      coordinates: [93.45, 62.45],
     },
     startTime: new Date("2028-04-26T18:45:30.500Z"),
     endTime: new Date("2028-04-27T10:45:30.500Z"),
@@ -85,7 +85,7 @@ export const duties: Partial<Duty>[] = [
     description: "Securing marpam building",
     location: {
       type: "Point",
-      coordinates: [1857.57, 264.54],
+      coordinates: [57.57, 64.64],
     },
     startTime: new Date("2028-04-04T18:45:30.500Z"),
     endTime: new Date("2028-04-11T10:45:30.500Z"),

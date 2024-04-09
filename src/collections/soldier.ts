@@ -9,6 +9,7 @@ import {
   findOne,
   insertOne,
   paginate,
+  project,
   updateOne,
 } from "../db/operations.js";
 import { type Soldier } from "../types/soldier.js";
@@ -143,4 +144,16 @@ export const skipSoldiers = async (startIndex: number, limit: number) => {
   );
 
   return soldiersAfterSkipping as Soldier[];
+};
+
+export const soldiersProjection = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
+  const soldiersAfterProjection = await project<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    projection
+  );
+
+  return soldiersAfterProjection as Partial<Soldier>[];
 };

@@ -11,11 +11,14 @@ import logger from "../logger.js";
 import {
   addConstraintsToDuty,
   deleteDuty,
+  dutiesProjection,
   filterDuties,
   findAllDuties,
   findDuty,
   findManyDuties,
+  findNearDutiesByQuery,
   insertDuty,
+  populateDutiesByQuery,
   skipDuties,
   sortDutiesWithFilter,
   updateDuty,
@@ -24,12 +27,16 @@ import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
 import {
   mongoSignsParsingDictionary,
+  nearDutiesSchema,
   paginationSchema,
   projectionSchema,
   queryFilteringSchema,
   sortingSchema,
 } from "../schemas/useableSchemas.js";
-import { object } from "zod";
+import {
+  dutyValidFields,
+  getDutiesProjection,
+} from "../logic/projectionLogic.js";
 
 export const schedule = async (id: string, duty: Duty) => {
   const justiceBoard = await calculateJusticeBoardWithSchedulingLogic(duty);
@@ -393,21 +400,24 @@ export const sortDuties = async (
   ];
 
   const { ...sortingFilter } = request.query as {
-    sort: string;
-    order: string;
+    sort?: string;
+    order?: string;
   };
+
+  logger.info(`Sort: ${sortingFilter.sort}`);
+  logger.info(`Order: ${sortingFilter.order}`);
 
   const schemaResult = validateSchema(sortingSchema, sortingFilter);
 
-  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort)) {
+  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort!)) {
     return await reply
       .code(HttpStatus.StatusCodes.BAD_REQUEST)
       .send({ error: `Failed to pass schema` });
   }
 
   const sortedDuties = await sortDutiesWithFilter(
-    sortingFilter.sort,
-    sortingFilter.order
+    sortingFilter.sort!,
+    sortingFilter.order ? sortingFilter.order : "ascend"
   );
 
   return await reply.code(HttpStatus.StatusCodes.OK).send(sortedDuties);
@@ -423,13 +433,17 @@ export const filterDutiesByQueries = async (
 
   const schemaResult = validateSchema(queryFilteringSchema, query);
 
-  if (!schemaResult) {
+  let [field, operator, valueStr] = query.filter
+    .replace(" ", "")
+    .split(/(>=|<=|<|>|=)/);
+
+  const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
+
+  if (!schemaResult || !validFilters.includes(field)) {
     return await reply
       .code(HttpStatus.StatusCodes.BAD_REQUEST)
       .send({ error: `Failed to pass schema.` });
   }
-
-  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
 
   operator = mongoSignsParsingDictionary[operator];
 
@@ -447,8 +461,8 @@ export const paginateDuties = async (
     limit?: string;
   };
 
-  const page = Number(query.page!);
-  const limit = Number(query.limit!);
+  const page = Number(query.page);
+  const limit = Number(query.limit);
 
   const schemaResult = validateSchema(paginationSchema, { page, limit });
 
@@ -475,9 +489,48 @@ export const projectDuties = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  logger.info("SUP");
   const { select } = request.query as { select?: string };
 
   const schemaResult = validateSchema(projectionSchema, { select });
+
+  const projectionParameters = select!.replace(" ", "").split(",");
+
+  if (
+    !schemaResult ||
+    projectionParameters.filter((param) => dutyValidFields.includes(param))
+      .length === 0
+  ) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const projection = getDutiesProjection(projectionParameters);
+
+  const dutiesAfterProjection = await dutiesProjection(projection);
+
+  return await reply
+    .code(HttpStatus.StatusCodes.OK)
+    .send(dutiesAfterProjection);
+};
+
+export const findNearDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { near, radius } = request.query as { near?: string; radius?: string };
+
+  const coordinates = near!
+    .replace(" ", "")
+    .split(",")
+    .map((element) => Number(element));
+  const radiusAsNumber = Number(radius);
+
+  const schemaResult = validateSchema(nearDutiesSchema, {
+    coordinates,
+    radiusAsNumber,
+  });
 
   if (!schemaResult) {
     return await reply
@@ -485,25 +538,53 @@ export const projectDuties = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  const projectionParameters = select!.split(",");
+  const nearDuties = await findNearDutiesByQuery(coordinates, radiusAsNumber);
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(nearDuties);
+};
+
+export const populateDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { populate } = request.query as { populate?: string };
+
+  if (populate !== "soldiers") {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema` });
+  }
+
+  const duties = await populateDutiesByQuery();
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(duties);
+};
+
+export const initializeDutyRouteHandler = () => {
+  const dutyGetRouteHandler: Map<string, Function> = new Map();
+
+  dutyGetRouteHandler.set(JSON.stringify(["filter"]), filterDutiesByQueries);
+  dutyGetRouteHandler.set(JSON.stringify(["sort"]), sortDuties);
+  dutyGetRouteHandler.set(JSON.stringify(["sort", "order"]), sortDuties);
+  dutyGetRouteHandler.set(JSON.stringify(["page", "limit"]), paginateDuties);
+  dutyGetRouteHandler.set(JSON.stringify(["select"]), projectDuties);
+  dutyGetRouteHandler.set(JSON.stringify(["near", "radius"]), findNearDuties);
+  dutyGetRouteHandler.set(JSON.stringify(["populate"]), populateDuties);
+
+  return dutyGetRouteHandler;
 };
 
 export const handleGetFilterFunctions = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const { filter } = request.query as { filter?: string };
-  const { select } = request.query as { select?: string };
-  const { sort, order } = request.query as { sort?: string; order?: string };
-  const { page, limit } = request.query as { page?: string; limit?: string };
+  const dutyRoutesHandler = initializeDutyRouteHandler();
 
-  return filter
-    ? await filterDutiesByQueries(request, reply)
-    : sort && order
-    ? await sortDuties(request, reply)
-    : page && limit
-    ? await paginateDuties(request, reply)
-    : select
-    ? await projectDuties(request, reply)
+  const queryParams = Object.keys(request.query as Object);
+
+  const func = dutyRoutesHandler.get(JSON.stringify(queryParams));
+
+  return func
+    ? await func(request, reply)
     : await getDutiesByFilters(request, reply);
 };

@@ -1,6 +1,5 @@
 import { client } from "../db/connections.js";
 import { aggregate } from "../db/operations.js";
-import logger from "../logger.js";
 import type { justiceBoardElement } from "../types/justice-board.js";
 
 const soldiersCollectionName = "soldiers";
@@ -71,6 +70,38 @@ export const filterJusticeBoardByQuery = async (
   cloneBasicFilter.push({
     $match: {
       score: { [operator]: value },
+    },
+  });
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
+};
+
+export const projectJusticeBoardByQuery = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.pop();
+  cloneBasicFilter.push({
+    $project: projection,
+  });
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
+};
+
+export const populateJusticeBoardByQuery = async () => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.push({
+    $lookup: {
+      from: "soldiers",
+      localField: "_id",
+      foreignField: "_id",
+      as: "soldier",
     },
   });
 

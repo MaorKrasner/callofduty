@@ -14,6 +14,9 @@ import {
   updateOne,
 } from "../db/operations.js";
 import { type Duty } from "../types/duty.js";
+import config from "../config.js";
+
+const dbName: string = config.dbName;
 
 const dutiesCollectionName = "duties";
 
@@ -203,16 +206,64 @@ export const skipDuties = async (startIndex: number, limit: number) => {
   return dutiesAfterSkipping as Duty[];
 };
 
-export const projectDuties = async (projectionParams: string[]) => {
-  let query: [key: string]: string = {};
-  if (projectionParams.length > 0) {
-    projectionParams.forEach(field => {
-      query[field] = "1"
-    });
-  }
+export const dutiesProjection = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
   const dutiesAfterProjection = await project<Duty & Document>(
     client,
     dutiesCollectionName,
+    projection
+  );
+
+  return dutiesAfterProjection as Partial<Duty>[];
+};
+
+export const findNearDutiesByQuery = async (
+  coordinates: number[],
+  radius: number
+) => {
+  await client
+    .db(dbName)
+    .collection<Duty>(dutiesCollectionName)
+    .createIndex({ location: "2dsphere" });
+  const nearQuery = {
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [coordinates[0], coordinates[1]],
+        },
+        $maxDistance: radius,
+      },
+    },
+  };
+
+  const duties = await findMany<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    nearQuery
+  );
+
+  return duties as Duty[];
+};
+
+export const populateDutiesByQuery = async () => {
+  const query = [
+    {
+      $lookup: {
+        from: "soldiers",
+        localField: "soldiers",
+        foreignField: "_id",
+        as: "soldiers",
+      },
+    },
+  ];
+
+  const result = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
     query
-  )
+  );
+
+  return result as Duty[];
 };

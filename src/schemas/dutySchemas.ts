@@ -45,7 +45,7 @@ export const dutyPatchSchema = z
       z
         .object({
           type: z.literal("Point"),
-          coordinates: z.array(z.number().positive()).length(2),
+          coordinates: z.array(z.number().min(-180).max(180)).length(2),
         })
         .strict()
     ),
