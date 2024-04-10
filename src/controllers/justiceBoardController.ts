@@ -26,6 +26,7 @@ export const getJusticeBoard = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  logger.info(`Hi from get`);
   const justiceBoard = await aggregateJusticeBoard();
 
   if (justiceBoard.length === 0) {
@@ -65,6 +66,9 @@ export const sortJusticeBoard = async (
     order?: string;
   };
 
+  logger.info(`Sort: ${sortingFilter.sort}`);
+  logger.info(`Order: ${sortingFilter.order}`);
+
   const schemaResult = validateSchema(sortingSchema, sortingFilter);
 
   if (!schemaResult || !validSortFilters.includes(sortingFilter.sort!)) {
@@ -102,22 +106,18 @@ export const filterJusticeBoard = async (
     filter: string;
   };
 
-  logger.info(`Filter: ${query.filter}`);
+  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
 
-  if (query.filter.replace(" ", "").slice(0, 5) !== "score") {
+  if (
+    query.filter.replace(" ", "").slice(0, 5) !== "score" ||
+    isNaN(+valueStr)
+  ) {
     return await reply
       .code(HttpStatus.StatusCodes.BAD_REQUEST)
       .send({ error: `Failed to pass schema.` });
   }
 
-  let [field, operator, valueStr] = query.filter.split(/(>=|<=|<|>|=)/);
-
-  logger.info(`Field: ${field}`);
-  logger.info(`ValueStr: ${valueStr}`);
-
   operator = mongoSignsParsingDictionary[operator];
-
-  logger.info(`Operator: ${operator}`);
 
   const filteredJusticeBoard = await filterJusticeBoardByQuery(
     operator,
@@ -227,10 +227,7 @@ const initializeJusticeBoardRouteHandler = () => {
     JSON.stringify(["sort", "order"]),
     sortJusticeBoard
   );
-  justiceBoardGetRouteHandler.set(
-    JSON.stringify(["sort"]),
-    sortJusticeBoard
-  );
+  justiceBoardGetRouteHandler.set(JSON.stringify(["sort"]), sortJusticeBoard);
   justiceBoardGetRouteHandler.set(
     JSON.stringify(["page", "limit"]),
     paginateJusticeBoard

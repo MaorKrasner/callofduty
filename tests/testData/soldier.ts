@@ -57,3 +57,37 @@ export const notFoundSoldierId = "123";
 export const existingLimitations = ["hair", "hatash7"];
 
 export const notExistingLimitation = "c";
+
+export const soldierSortingUrlsDictionary: [string, string][] = [
+  ["soldiers?sort=rank.value", "200"],
+  ["soldiers?sort=value", "400"],
+  ["soldiers?sort=_id", "200"],
+  ["soldiers?sort=id", "400"],
+  ["soldiers?sort=rank.value&order=desc", "200"],
+  ["soldiers?sort=rank.value&order=d", "400"],
+  ["soldiers?sort=rank.value&order=ascend", "200"],
+  ["soldiers?sort=rank.value&order=a", "400"],
+];
+
+export const soldierFilteringUrlsDictionary: [string, string][] = [
+  ["soldiers?filter=rank.value>=1", "200"],
+  ["soldiers?filter=rank.value>=20", "200"], // []
+  ["soldiers?filter=rank>=1", "400"],
+  ["soldiers?filter=value>=1", "400"],
+];
+
+export const soldierPaginationUrlsDictionary: [string, string][] = [
+  ["soldiers?page=1&limit=2", "200"],
+  ["soldiers?page=10000&limit=2", "200"], // []
+  ["soldiers?page=-3&limit=2", "400"],
+  ["soldiers?page=8cb&limit=2", "400"],
+  ["soldiers?page=&limit=2", "400"],
+  ["soldiers?pa=1&limit=2", "400"],
+  ["soldiers?page=1&lim=3", "400"],
+];
+
+export const soldierProjectionUrlsDictionary: [string, string][] = [
+  ["soldiers?select=name", "200"],
+  ["soldiers?select=nameeee", "400"],
+  ["soldiers?sel=name", "400"],
+];

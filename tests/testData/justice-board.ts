@@ -1,6 +1,6 @@
 import { type Soldier } from "../../src/types/soldier.js";
 
-import { type Duty } from "../../src/types/duty.js"
+import { type Duty } from "../../src/types/duty.js";
 
 export const justiceBoardTestSoldier: Partial<Soldier> = {
   _id: "4567810",
@@ -21,7 +21,7 @@ export const justiceBoardTestDuty: Partial<Duty> = {
   description: "Duty for justice board tests to check score",
   location: {
     type: "Point",
-    coordinates: [123.78, 98.46]
+    coordinates: [123.78, 98.46],
   },
   startTime: new Date("2024-04-27T12:30:00.000Z"),
   endTime: new Date("2024-04-30T12:30:00.000Z"),
@@ -29,7 +29,7 @@ export const justiceBoardTestDuty: Partial<Duty> = {
   maxRank: 6,
   constraints: [],
   soldiersRequired: 2,
-  value: 15
+  value: 15,
 };
 
 export const secondJusticeBoardTestDuty: Partial<Duty> = {
@@ -37,7 +37,7 @@ export const secondJusticeBoardTestDuty: Partial<Duty> = {
   description: "Second duty for justice board tests to check score",
   location: {
     type: "Point",
-    coordinates: [1568.08, 948.45]
+    coordinates: [1568.08, 948.45],
   },
   startTime: new Date("2024-05-14T12:30:00.000Z"),
   endTime: new Date("2024-05-18T12:30:00.000Z"),
@@ -45,5 +45,51 @@ export const secondJusticeBoardTestDuty: Partial<Duty> = {
   maxRank: 6,
   constraints: [],
   soldiersRequired: 5,
-  value: 20
+  value: 20,
 };
+
+export const justiceBoardSortingUrlsDictionary: [string, string][] = [
+  ["justice-board?sort=score", "200"],
+  ["justice-board?sort=sc", "400"],
+  ["justice-board?srt=score", "400"],
+  ["justice-board?srt=sc", "400"],
+  ["justice-board?sort=score&order=desc", "200"],
+  ["justice-board?sort=score&order=ascend", "200"],
+  ["justice-board?sort=score&order=d", "400"],
+  ["justice-board?sort=score&order=a", "400"],
+  ["justice-board?sort=score&ord=desc", "400"],
+  ["justice-board?sort=score&ord=ascend", "400"],
+];
+
+export const justiceBoardFilteringUrlsDictionary: [string, string][] = [
+  ["justice-board?filter=score>1", "200"],
+  ["justice-board?filter=score<0", "200"], // []
+  ["justice-board?filter=sc>1", "400"],
+  ["justice-board?filter=sc<1", "400"],
+  ["justice-board?filt=score>1", "400"],
+  ["justice-board?filt=sc>1", "400"],
+];
+
+export const justiceBoardPaginationUrlsDictionary: [string, string][] = [
+  ["justice-board?page=1&limit=2", "200"],
+  ["justice-board?page=10000&limit=2", "200"], // []
+  ["justice-board?page=-3&limit=2", "400"],
+  ["justice-board?page=8cb&limit=2", "400"],
+  ["justice-board?page=&limit=2", "400"],
+  ["justice-board?pa=1&limit=2", "400"],
+  ["justice-board?page=1&lim=3", "400"],
+];
+
+export const justiceBoardProjectionUrlsDictionary: [string, string][] = [
+  ["justice-board?select=score", "200"],
+  ["justice-board?select=scoreeee", "400"],
+  ["justice-board?sel=sco", "400"],
+  ["justice-board?sel=score", "400"],
+];
+
+export const justiceBoardPopulationUrlsDictionary: [string, string][] = [
+  ["justice-board?populate=_id", "200"],
+  ["justice-board?populate=id", "400"],
+  ["justice-board?pop=_id", "400"],
+  ["justice-board?pop=id", "400"],
+];

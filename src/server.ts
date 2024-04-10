@@ -58,7 +58,7 @@ const createServer = async () => {
   });
 
   server.register(fastifyRateLimit, {
-    max: 100,
+    max: 1000,
     timeWindow: "1 minute",
   });
 

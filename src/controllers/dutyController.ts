@@ -439,7 +439,7 @@ export const filterDutiesByQueries = async (
 
   const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
 
-  if (!schemaResult || !validFilters.includes(field)) {
+  if (!schemaResult || !validFilters.includes(field) || isNaN(+valueStr)) {
     return await reply
       .code(HttpStatus.StatusCodes.BAD_REQUEST)
       .send({ error: `Failed to pass schema.` });
