@@ -39,34 +39,37 @@ export const nearDutiesSchema = z.object({
   radiusAsNumber: z.number().positive(),
 });
 
-export const justiceBoardGetRouteSchema = z
+export const dutiesGetRouteSchema = z
   .object({
-    sort: z.string().optional(),
+    sort: z.string().min(1).optional(),
     order: z.string().optional(),
-    filter: z.string().optional(),
+    filter: z.string().min(1).optional(),
     page: z.number().positive().optional(),
     limit: z.number().positive().optional(),
-    select: z.string().optional(),
-    populate: z.string().optional(),
+    select: z.string().min(1).optional(),
+    populate: z.string().min(1).optional(),
+    near: z.string().optional(),
+    radius: z.number().optional(),
   })
   .strict()
   .refine((obj) => {
     if (obj.order) {
-      return (
-        obj.sort! &&
-        !obj.filter &&
-        !obj.page &&
-        !obj.limit &&
-        !obj.select &&
-        !obj.populate
-      );
+      const validOrders = ["desc", "ascend"];
+      return validOrders.includes(obj.order) && obj.sort !== undefined;
     }
     if (obj.page) {
-      return obj.limit!;
+      return obj.limit !== undefined;
     }
     if (obj.limit) {
       return obj.page !== undefined;
     }
+    if (obj.populate) {
+      return obj.populate === "soldiers";
+    }
+    if (obj.near) {
+      return obj.radius !== undefined;
+    }
+    return true;
   });
 
 export const mongoSignsParsingDictionary: { [key: string]: string } = {

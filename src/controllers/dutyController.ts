@@ -26,6 +26,7 @@ import {
 import { validateSchema } from "../schemas/validator.js";
 import { calculateJusticeBoardWithSchedulingLogic } from "../logic/schedulingLogic.js";
 import {
+  dutiesGetRouteSchema,
   mongoSignsParsingDictionary,
   nearDutiesSchema,
   paginationSchema,
@@ -587,4 +588,77 @@ export const handleGetFilterFunctions = async (
   return func
     ? await func(request, reply)
     : await getDutiesByFilters(request, reply);
+};
+
+export const getQueryDuties = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const dictionary = request.query as { [key: string]: string | number };
+  const keys = Object.keys(dictionary);
+
+  const query: Object[] = [];
+
+  keys.forEach((key) => {
+    if (key === "sort") {
+      let sortOrderAsNumber = 1;
+
+      if (keys.includes("order")) {
+        sortOrderAsNumber = dictionary["order"] === "ascend" ? 1 : -1;
+      }
+
+      const $sort = {} as Record<string, number>;
+      $sort[dictionary[key]] = sortOrderAsNumber;
+      query.push({ $sort });
+    }
+
+    if (key === "populate") {
+      query.push({
+        $lookup: {
+          from: "soldiers",
+          localField: "soldiers",
+          foreignField: "_id",
+          as: "soldiers",
+        },
+      });
+    }
+
+    if (key === "near" || key === "radius") {
+      const coordinates = (dictionary["near"] as string)
+        .replace(" ", "")
+        .split(",");
+      const radius = dictionary["radius"] as Number;
+
+      query.push({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [coordinates[0], coordinates[1]],
+            },
+            $maxDistance: radius,
+          },
+        },
+      });
+    }
+  });
+};
+
+export const handleGetQueryFilters = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const queryParams = request.query as Object;
+
+  const schemaResult = validateSchema(dutiesGetRouteSchema, queryParams);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const dutiesAfterQuery = await getQueryDuties(request, reply);
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(dutiesAfterQuery);
 };
