@@ -267,3 +267,13 @@ export const populateDutiesByQuery = async () => {
 
   return result as Duty[];
 };
+
+export const getDutiesByQuery = async (query: Object[]) => {
+  const result = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    query
+  );
+
+  return result as Partial<Duty>[];
+};

@@ -17,6 +17,7 @@ import {
   findDuty,
   findManyDuties,
   findNearDutiesByQuery,
+  getDutiesByQuery,
   insertDuty,
   populateDutiesByQuery,
   skipDuties,
@@ -490,7 +491,6 @@ export const projectDuties = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  logger.info("SUP");
   const { select } = request.query as { select?: string };
 
   const schemaResult = validateSchema(projectionSchema, { select });
@@ -641,7 +641,45 @@ export const getQueryDuties = async (
         },
       });
     }
+
+    if (key === "filter") {
+      const filterPhrase = dictionary["filter"] as string;
+
+      // Split the filter phrase into field, operator, and value
+      const [field, rawOperator, ...valueParts] =
+        filterPhrase.split(/(>=|<=|<|>|=)/);
+      const operator = rawOperator.trim();
+      const valueStr = valueParts.join("").trim();
+
+      // Log the values to ensure they are extracted correctly
+      logger.info(`Field: ${field}`);
+      logger.info(`Operator: ${operator}`);
+      logger.info(`ValueStr: ${valueStr}`);
+
+      // Get the MongoDB operator from the dictionary
+      const mongoOperator = mongoSignsParsingDictionary[operator];
+
+      // Construct the filter query
+      const filterQuery: Record<string, any> = {};
+      filterQuery[field.trim()] = { [mongoOperator]: +valueStr };
+
+      // Push the filter query into the pipeline
+      query.push(filterQuery);
+    }
+
+    if (key === "select") {
+      const selectPhrase = dictionary["select"] as string;
+      const projectionParameters = selectPhrase.replace(" ", "").split(",");
+
+      const projection = getDutiesProjection(projectionParameters);
+
+      query.push({ $project: projection });
+    }
   });
+
+  const duties = await getDutiesByQuery(query);
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(duties);
 };
 
 export const handleGetQueryFilters = async (
