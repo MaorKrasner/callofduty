@@ -269,6 +269,11 @@ export const populateDutiesByQuery = async () => {
 };
 
 export const getDutiesByQuery = async (query: Object[]) => {
+  await client
+    .db(dbName)
+    .collection<Duty>(dutiesCollectionName)
+    .createIndex({ location: "2dsphere" });
+
   const result = await aggregate<Duty & Document>(
     client,
     dutiesCollectionName,

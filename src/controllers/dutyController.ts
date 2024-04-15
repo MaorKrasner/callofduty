@@ -645,26 +645,19 @@ export const getQueryDuties = async (
     if (key === "filter") {
       const filterPhrase = dictionary["filter"] as string;
 
-      // Split the filter phrase into field, operator, and value
-      const [field, rawOperator, ...valueParts] =
-        filterPhrase.split(/(>=|<=|<|>|=)/);
-      const operator = rawOperator.trim();
-      const valueStr = valueParts.join("").trim();
+      let [field, operator, valueStr] = filterPhrase
+        .replace(" ", "")
+        .split(/(>=|<=|<|>|=)/);
 
-      // Log the values to ensure they are extracted correctly
+      operator = mongoSignsParsingDictionary[operator];
+      const value = +valueStr;
+
+      logger.info(`Filter phrase: ${filterPhrase}`);
       logger.info(`Field: ${field}`);
       logger.info(`Operator: ${operator}`);
-      logger.info(`ValueStr: ${valueStr}`);
+      logger.info(`Value: ${value}`);
 
-      // Get the MongoDB operator from the dictionary
-      const mongoOperator = mongoSignsParsingDictionary[operator];
-
-      // Construct the filter query
-      const filterQuery: Record<string, any> = {};
-      filterQuery[field.trim()] = { [mongoOperator]: +valueStr };
-
-      // Push the filter query into the pipeline
-      query.push(filterQuery);
+      query.push({ [field]: { [operator]: value } });
     }
 
     if (key === "select") {
@@ -687,6 +680,10 @@ export const handleGetQueryFilters = async (
   reply: FastifyReply
 ) => {
   const queryParams = request.query as Object;
+
+  logger.info(`Query parameters: ${JSON.stringify(queryParams)}`);
+  const types = Object.values(queryParams).map((param) => typeof param);
+  logger.info(`Types are: ${JSON.stringify(types)}`);
 
   const schemaResult = validateSchema(dutiesGetRouteSchema, queryParams);
 

@@ -50,7 +50,7 @@ export const dutiesGetRouteSchema = z
     select: z.string().min(1).optional(),
     populate: z.string().min(1).optional(),
     near: z.string().min(1).optional(),
-    radius: z.number().optional(),
+    radius: z.string().optional(),
   })
   .strict()
   .refine((obj) => {
@@ -68,7 +68,7 @@ export const dutiesGetRouteSchema = z
       return obj.populate === "soldiers";
     }
     if (obj.near) {
-      return obj.radius !== undefined;
+      return obj.radius !== undefined && !isNaN(+obj.radius);
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
