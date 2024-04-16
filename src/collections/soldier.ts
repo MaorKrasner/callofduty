@@ -157,3 +157,13 @@ export const soldiersProjection = async (projection: {
 
   return soldiersAfterProjection as Partial<Soldier>[];
 };
+
+export const getSoldiersByQuery = async (query: Object[]) => {
+  const result = await aggregate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    query
+  );
+
+  return result as Partial<Soldier>[];
+};
