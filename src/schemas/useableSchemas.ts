@@ -1,39 +1,17 @@
-import { string, z } from "zod";
+import { z } from "zod";
+
 import { dutyValidFields } from "../logic/projectionLogic.js";
+import {
+  dutySample,
+  soldierSample,
+  justiceBoardSample,
+} from "../useableSamples.js";
 
-export const sortingSchema = z
-  .object({
-    sort: z.string().min(1),
-    order: z.string().optional(), // desc / ascend
-  })
-  .strict()
-  .refine((obj) => {
-    if (obj.order) {
-      const validOrders = ["desc", "ascend"];
-      return validOrders.includes(obj.order);
-    }
+const dutyKeys = Object.keys(dutySample);
+const soldierKeys = Object.keys(soldierSample);
+const justiceBoardKeys = Object.keys(justiceBoardSample);
 
-    return true;
-  });
-
-export const queryFilteringSchema = z
-  .object({
-    filter: z.string().min(1),
-  })
-  .strict();
-
-export const paginationSchema = z
-  .object({
-    page: z.number().positive(),
-    limit: z.number().positive(),
-  })
-  .strict();
-
-export const projectionSchema = z
-  .object({
-    select: z.string().min(1),
-  })
-  .strict();
+const stringSchema = z.string().optional();
 
 export const nearDutiesSchema = z.object({
   coordinates: z.array(z.number().positive()).length(2),
@@ -42,33 +20,46 @@ export const nearDutiesSchema = z.object({
 
 export const dutiesGetRouteSchema = z
   .object({
-    sort: z.string().min(1).optional(),
-    order: z.string().optional(),
-    filter: z.string().min(1).optional(),
-    page: z.number().positive().optional(),
-    limit: z.number().positive().optional(),
-    select: z.string().min(1).optional(),
-    populate: z.string().min(1).optional(),
-    near: z.string().min(1).optional(),
-    radius: z.string().optional(),
+    sort: stringSchema,
+    order: stringSchema,
+    filter: stringSchema,
+    page: stringSchema,
+    limit: stringSchema,
+    select: stringSchema,
+    populate: stringSchema,
+    near: stringSchema,
+    radius: stringSchema,
   })
   .strict()
   .refine((obj) => {
+    const conditionsArray = new Array<boolean>();
+
+    if (obj.sort) {
+      conditionsArray.push(dutyKeys.includes(obj.sort));
+    }
     if (obj.order) {
+      if (!obj.sort) return false;
+
       const validOrders = ["desc", "ascend"];
-      return validOrders.includes(obj.order) && obj.sort !== undefined;
+      conditionsArray.push(
+        validOrders.includes(obj.order) && dutyKeys.includes(obj.sort)
+      );
     }
     if (obj.page) {
-      return obj.limit !== undefined;
+      conditionsArray.push(
+        !isNaN(+obj.page) && obj.limit !== undefined && !isNaN(+obj.limit)
+      );
     }
     if (obj.limit) {
-      return obj.page !== undefined;
+      conditionsArray.push(
+        !isNaN(+obj.limit) && obj.page !== undefined && !isNaN(+obj.page)
+      );
     }
     if (obj.populate) {
-      return obj.populate === "soldiers";
+      conditionsArray.push(obj.populate === "soldiers");
     }
     if (obj.near) {
-      return obj.radius !== undefined && !isNaN(+obj.radius);
+      conditionsArray.push(obj.radius !== undefined && !isNaN(+obj.radius));
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
@@ -77,39 +68,106 @@ export const dutiesGetRouteSchema = z
 
       const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
 
-      return validFilters.includes(field) && !isNaN(+valueStr);
+      conditionsArray.push(validFilters.includes(field) && !isNaN(+valueStr));
     }
     if (obj.select) {
       const projectionParameters = obj.select.replace(" ", "").split(",");
 
-      return (
+      conditionsArray.push(
         projectionParameters.filter((param) => dutyValidFields.includes(param))
           .length > 0
       );
     }
-    return true;
+
+    return conditionsArray.every((condition) => condition === true);
   });
 
 export const soldiersGetRouteSchema = z
   .object({
-    sort: z.string().min(1).optional(),
-    order: z.string().optional(),
-    filter: z.string().min(1).optional(),
-    page: z.number().positive().optional(),
-    limit: z.number().positive().optional(),
-    select: z.string().min(1).optional(),
+    sort: stringSchema,
+    order: stringSchema,
+    filter: stringSchema,
+    page: stringSchema,
+    limit: stringSchema,
+    select: stringSchema,
   })
   .strict()
   .refine((obj) => {
+    const conditionsArray = new Array<boolean>();
+
+    if (obj.sort) {
+      conditionsArray.push(soldierKeys.includes(obj.sort));
+    }
     if (obj.order) {
+      if (!obj.sort) return false;
+
       const validOrders = ["desc", "ascend"];
-      return validOrders.includes(obj.order) && obj.sort !== undefined;
+      conditionsArray.push(
+        validOrders.includes(obj.order) && soldierKeys.includes(obj.sort)
+      );
     }
     if (obj.page) {
-      return obj.limit !== undefined;
+      conditionsArray.push(obj.limit !== undefined);
     }
     if (obj.limit) {
-      return obj.page !== undefined;
+      conditionsArray.push(obj.page !== undefined);
+    }
+    if (obj.filter) {
+      let [field, operator, valueStr] = obj.filter
+        .replace(" ", "")
+        .split(/(>=|<=|<|>|=)/);
+
+      conditionsArray.push(field === "rank.value" && !isNaN(+valueStr));
+    }
+    if (obj.select) {
+      const projectionParameters = obj.select.replace(" ", "").split(",");
+
+      conditionsArray.push(
+        projectionParameters.filter((param) => dutyValidFields.includes(param))
+          .length > 0
+      );
+    }
+
+    return conditionsArray.every((condition) => condition === true);
+  });
+
+export const justiceBoardRouteSchema = z
+  .object({
+    sort: stringSchema,
+    order: stringSchema,
+    filter: stringSchema,
+    page: stringSchema,
+    limit: stringSchema,
+    select: stringSchema,
+    populate: stringSchema,
+  })
+  .strict()
+  .refine((obj) => {
+    const conditionsArray = new Array<boolean>();
+
+    if (obj.sort) {
+      conditionsArray.push(justiceBoardKeys.includes(obj.sort));
+    }
+    if (obj.order) {
+      if (!obj.sort) return false;
+
+      const validOrders = ["desc", "ascend"];
+      conditionsArray.push(
+        validOrders.includes(obj.order) && justiceBoardKeys.includes(obj.sort)
+      );
+    }
+    if (obj.page) {
+      conditionsArray.push(
+        !isNaN(+obj.page) && obj.limit !== undefined && !isNaN(+obj.limit)
+      );
+    }
+    if (obj.limit) {
+      conditionsArray.push(
+        !isNaN(+obj.limit) && obj.page !== undefined && !isNaN(+obj.page)
+      );
+    }
+    if (obj.populate) {
+      conditionsArray.push(obj.populate === "soldiers");
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
@@ -118,17 +176,18 @@ export const soldiersGetRouteSchema = z
 
       const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
 
-      return validFilters.includes(field) && !isNaN(+valueStr);
+      conditionsArray.push(validFilters.includes(field) && !isNaN(+valueStr));
     }
     if (obj.select) {
       const projectionParameters = obj.select.replace(" ", "").split(",");
 
-      return (
+      conditionsArray.push(
         projectionParameters.filter((param) => dutyValidFields.includes(param))
           .length > 0
       );
     }
-    return true;
+
+    return conditionsArray.every((condition) => condition === true);
   });
 
 export const mongoSignsParsingDictionary: { [key: string]: string } = {

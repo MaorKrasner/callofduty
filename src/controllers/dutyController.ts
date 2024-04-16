@@ -30,10 +30,6 @@ import {
   dutiesGetRouteSchema,
   mongoSignsParsingDictionary,
   nearDutiesSchema,
-  paginationSchema,
-  projectionSchema,
-  queryFilteringSchema,
-  sortingSchema,
 } from "../schemas/useableSchemas.js";
 import {
   dutyValidFields,
@@ -386,36 +382,10 @@ export const sortDuties = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const validSortFilters = [
-    "_id",
-    "name",
-    "description",
-    "location",
-    "startTime",
-    "endTime",
-    "minRank",
-    "maxRank",
-    "soldiersRequired",
-    "value",
-    "createdAt",
-    "updatedAt",
-  ];
-
   const { ...sortingFilter } = request.query as {
     sort?: string;
     order?: string;
   };
-
-  logger.info(`Sort: ${sortingFilter.sort}`);
-  logger.info(`Order: ${sortingFilter.order}`);
-
-  const schemaResult = validateSchema(sortingSchema, sortingFilter);
-
-  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort!)) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema` });
-  }
 
   const sortedDuties = await sortDutiesWithFilter(
     sortingFilter.sort!,
@@ -433,19 +403,9 @@ export const filterDutiesByQueries = async (
     filter: string;
   };
 
-  const schemaResult = validateSchema(queryFilteringSchema, query);
-
   let [field, operator, valueStr] = query.filter
     .replace(" ", "")
     .split(/(>=|<=|<|>|=)/);
-
-  const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
-
-  if (!schemaResult || !validFilters.includes(field) || isNaN(+valueStr)) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
 
   operator = mongoSignsParsingDictionary[operator];
 
@@ -466,14 +426,6 @@ export const paginateDuties = async (
   const page = Number(query.page);
   const limit = Number(query.limit);
 
-  const schemaResult = validateSchema(paginationSchema, { page, limit });
-
-  if (!schemaResult) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
-
   const startIndex = (page - 1) * limit;
 
   const duties = await skipDuties(startIndex, limit);
@@ -493,19 +445,7 @@ export const projectDuties = async (
 ) => {
   const { select } = request.query as { select?: string };
 
-  const schemaResult = validateSchema(projectionSchema, { select });
-
   const projectionParameters = select!.replace(" ", "").split(",");
-
-  if (
-    !schemaResult ||
-    projectionParameters.filter((param) => dutyValidFields.includes(param))
-      .length === 0
-  ) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
 
   const projection = getDutiesProjection(projectionParameters);
 
@@ -683,7 +623,6 @@ export const handleGetQueryFilters = async (
 
   logger.info(`Query parameters: ${JSON.stringify(queryParams)}`);
   const types = Object.values(queryParams).map((param) => typeof param);
-  logger.info(`Types are: ${JSON.stringify(types)}`);
 
   const schemaResult = validateSchema(dutiesGetRouteSchema, queryParams);
 
@@ -693,7 +632,5 @@ export const handleGetQueryFilters = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  const dutiesAfterQuery = await getQueryDuties(request, reply);
-
-  return await reply.code(HttpStatus.StatusCodes.OK).send(dutiesAfterQuery);
+  await getQueryDuties(request, reply);
 };
