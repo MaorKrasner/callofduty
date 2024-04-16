@@ -592,11 +592,6 @@ export const getQueryDuties = async (
       operator = mongoSignsParsingDictionary[operator];
       const value = +valueStr;
 
-      logger.info(`Filter phrase: ${filterPhrase}`);
-      logger.info(`Field: ${field}`);
-      logger.info(`Operator: ${operator}`);
-      logger.info(`Value: ${value}`);
-
       query.push({ [field]: { [operator]: value } });
     }
 
