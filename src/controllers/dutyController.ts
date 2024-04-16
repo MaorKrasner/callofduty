@@ -610,9 +610,7 @@ export const getQueryDuties = async (
     }
   });
 
-  const duties = await getDutiesByQuery(query);
-
-  return await reply.code(HttpStatus.StatusCodes.OK).send(duties);
+  return await getDutiesByQuery(query);
 };
 
 export const handleGetQueryFilters = async (
@@ -632,5 +630,7 @@ export const handleGetQueryFilters = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  await getQueryDuties(request, reply);
+  const duties = await getQueryDuties(request, reply);
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(duties);
 };
