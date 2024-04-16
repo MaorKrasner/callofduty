@@ -24,11 +24,7 @@ import {
 import { validateSchema } from "../schemas/validator.js";
 import {
   mongoSignsParsingDictionary,
-  paginationSchema,
-  projectionSchema,
-  queryFilteringSchema,
   soldiersGetRouteSchema,
-  sortingSchema,
 } from "../schemas/useableSchemas.js";
 import {
   getSoldiersProjection,
