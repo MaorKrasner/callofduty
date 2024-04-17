@@ -128,6 +128,10 @@ export const notFoundDutyId = Array(24).fill("0").join("");
 
 export const notWorkingUrlParameter = "lim=abc";
 
+export const workingProjectionField = "name";
+
+export const notWorkingProjectionField = "nameeeeeee";
+
 export const dutySortingUrlsDictionary: [string, string][] = [
   ["duties?sort=value", "200"],
   ["duties?sort=val", "400"],
