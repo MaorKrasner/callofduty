@@ -31,10 +31,7 @@ import {
   mongoSignsParsingDictionary,
   nearDutiesSchema,
 } from "../schemas/useableSchemas.js";
-import {
-  dutyValidFields,
-  getDutiesProjection,
-} from "../logic/projectionLogic.js";
+import { getDutiesProjection } from "../logic/projectionLogic.js";
 
 export const schedule = async (id: string, duty: Duty) => {
   const justiceBoard = await calculateJusticeBoardWithSchedulingLogic(duty);
@@ -539,6 +536,24 @@ export const getQueryDuties = async (
 
   const query: Object[] = [];
 
+  if (keys.includes("page")) {
+    let page = dictionary["page"] as number;
+    let limit = dictionary["limit"] as number;
+
+    page = Math.trunc(page);
+    limit = Math.trunc(limit);
+
+    const startIndex = (page - 1) * limit;
+
+    const soldiers = await skipDuties(startIndex, limit);
+
+    const amountOfSoldiers = (await findAllDuties()).length;
+
+    const totalPages = Math.ceil(amountOfSoldiers / limit);
+
+    return [soldiers, `${page}/${totalPages}`];
+  }
+
   keys.forEach((key) => {
     if (key === "sort") {
       let sortOrderAsNumber = 1;
@@ -592,7 +607,7 @@ export const getQueryDuties = async (
       operator = mongoSignsParsingDictionary[operator];
       const value = +valueStr;
 
-      query.push({ [field]: { [operator]: value } });
+      query.push({ $match: { [field]: { [operator]: value } } });
     }
 
     if (key === "select") {
@@ -605,7 +620,9 @@ export const getQueryDuties = async (
     }
   });
 
-  return await getDutiesByQuery(query);
+  const duties = await getDutiesByQuery(query);
+
+  return [duties, `0`];
 };
 
 export const handleGetQueryFilters = async (
@@ -614,8 +631,23 @@ export const handleGetQueryFilters = async (
 ) => {
   const queryParams = request.query as Object;
 
-  logger.info(`Query parameters: ${JSON.stringify(queryParams)}`);
-  const types = Object.values(queryParams).map((param) => typeof param);
+  const validQueryParams = [
+    "sort",
+    "order",
+    "filter",
+    "page",
+    "limit",
+    "select",
+    "populate",
+    "near",
+    "radius",
+  ];
+
+  if (
+    Object.keys(queryParams).every((param) => !validQueryParams.includes(param))
+  ) {
+    return await getDutiesByFilters(request, reply);
+  }
 
   const schemaResult = validateSchema(dutiesGetRouteSchema, queryParams);
 
@@ -625,7 +657,13 @@ export const handleGetQueryFilters = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  const duties = await getQueryDuties(request, reply);
+  const [duties, resultCode] = await getQueryDuties(request, reply);
+
+  if (resultCode !== `0`) {
+    return await reply
+      .code(HttpStatus.StatusCodes.OK)
+      .send({ page: resultCode, duties });
+  }
 
   return await reply.code(HttpStatus.StatusCodes.OK).send(duties);
 };

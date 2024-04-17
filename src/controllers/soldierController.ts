@@ -4,15 +4,12 @@ import * as HttpStatus from "http-status-codes";
 import logger from "../logger.js";
 import {
   deleteSoldier,
-  filterSoldiers,
   findAllSoldiers,
   findManySoldiers,
   findSoldier,
   getSoldiersByQuery,
   insertSoldier,
   skipSoldiers,
-  soldiersProjection,
-  sortSoldiersWithFilter,
   updateSoldier,
 } from "../collections/soldier.js";
 import { type Soldier } from "../types/soldier.js";
@@ -26,10 +23,7 @@ import {
   mongoSignsParsingDictionary,
   soldiersGetRouteSchema,
 } from "../schemas/useableSchemas.js";
-import {
-  getSoldiersProjection,
-  soldierValidFields,
-} from "../logic/projectionLogic.js";
+import { getSoldiersProjection } from "../logic/projectionLogic.js";
 
 export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
@@ -195,167 +189,6 @@ export const updateSoldierById = async (
   return await reply.status(HttpStatus.StatusCodes.OK).send(newSoldier);
 };
 
-export const sortSoldiers = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
-  const validSortFilters = [
-    "_id",
-    "name",
-    "rank.value",
-    "createdAt",
-    "updatedAt",
-  ];
-
-  const { ...sortingFilter } = request.query as {
-    sort?: string;
-    order?: string;
-  };
-
-  const schemaResult = validateSchema(sortingSchema, sortingFilter);
-
-  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort!)) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema` });
-  }
-
-  const sortedSoldiers = await sortSoldiersWithFilter(
-    sortingFilter.sort!,
-    sortingFilter.order ? sortingFilter.order : "ascend"
-  );
-
-  return await reply.code(HttpStatus.StatusCodes.OK).send(sortedSoldiers);
-};
-
-export const filterSoldiersByQueries = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
-  const { ...query } = request.query as {
-    filter: string;
-  };
-
-  let [field, operator, valueStr] = query.filter
-    .replace(" ", "")
-    .split(/(>=|<=|<|>|=)/);
-
-  const schemaResult = validateSchema(queryFilteringSchema, query);
-
-  const validFilters = ["rank.value"];
-
-  if (!schemaResult || !validFilters.includes(field) || isNaN(+valueStr)) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
-
-  operator = mongoSignsParsingDictionary[operator];
-
-  const filteredSoldiers = await filterSoldiers(
-    field,
-    operator,
-    Number(valueStr)
-  );
-
-  return await reply.code(HttpStatus.StatusCodes.OK).send(filteredSoldiers);
-};
-
-export const paginateSoldiers = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
-  const { ...query } = request.query as {
-    page?: string;
-    limit?: string;
-  };
-
-  const page = Number(query.page);
-  const limit = Number(query.limit);
-
-  const schemaResult = validateSchema(paginationSchema, { page, limit });
-
-  if (!schemaResult) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
-
-  const startIndex = (page - 1) * limit;
-
-  const soldiers = await skipSoldiers(startIndex, limit);
-
-  const amountOfSoldiers = (await findAllSoldiers()).length;
-
-  const totalPages = Math.ceil(amountOfSoldiers / limit);
-
-  return await reply
-    .code(HttpStatus.StatusCodes.OK)
-    .send({ page: page, totalPages: totalPages, soldiers });
-};
-
-export const projectSoldiers = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
-  const { select } = request.query as { select?: string };
-
-  const schemaResult = validateSchema(projectionSchema, { select });
-
-  const projectionParameters = select!.replace(" ", "").split(",");
-
-  if (
-    !schemaResult ||
-    projectionParameters.filter((param) => soldierValidFields.includes(param))
-      .length === 0
-  ) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
-
-  const projection = getSoldiersProjection(projectionParameters);
-
-  const soldiersAfterProjection = await soldiersProjection(projection);
-
-  return await reply
-    .code(HttpStatus.StatusCodes.OK)
-    .send(soldiersAfterProjection);
-};
-
-export const initializeSoldierRouteHandler = () => {
-  const soldierGetRouteHandler: Map<string, Function> = new Map();
-
-  soldierGetRouteHandler.set(
-    JSON.stringify(["filter"]),
-    filterSoldiersByQueries
-  );
-  soldierGetRouteHandler.set(JSON.stringify(["sort", "order"]), sortSoldiers);
-  soldierGetRouteHandler.set(JSON.stringify(["sort"]), sortSoldiers);
-  soldierGetRouteHandler.set(
-    JSON.stringify(["page", "limit"]),
-    paginateSoldiers
-  );
-  soldierGetRouteHandler.set(JSON.stringify(["select"]), projectSoldiers);
-
-  return soldierGetRouteHandler;
-};
-
-export const handleGetFilterFunctions = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
-  const soldierRoutesHandler = initializeSoldierRouteHandler();
-
-  const queryParams = Object.keys(request.query as Object);
-
-  const func = soldierRoutesHandler.get(JSON.stringify(queryParams));
-
-  return func
-    ? await func(request, reply)
-    : await getSoldiersByFilters(request, reply);
-};
-
 export const getQuerySoldiers = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -364,6 +197,24 @@ export const getQuerySoldiers = async (
   const keys = Object.keys(dictionary);
 
   const query: Object[] = [];
+
+  if (keys.includes("page")) {
+    let page = dictionary["page"] as number;
+    let limit = dictionary["limit"] as number;
+
+    page = Math.trunc(page);
+    limit = Math.trunc(limit);
+
+    const startIndex = (page - 1) * limit;
+
+    const soldiers = await skipSoldiers(startIndex, limit);
+
+    const amountOfSoldiers = (await findAllSoldiers()).length;
+
+    const totalPages = Math.ceil(amountOfSoldiers / limit);
+
+    return [soldiers, `${page}/${totalPages}`];
+  }
 
   keys.forEach((key) => {
     if (key === "sort") {
@@ -388,7 +239,7 @@ export const getQuerySoldiers = async (
       operator = mongoSignsParsingDictionary[operator];
       const value = +valueStr;
 
-      query.push({ [field]: { [operator]: value } });
+      query.push({ $match: { [field]: { [operator]: value } } });
     }
 
     if (key === "select") {
@@ -401,7 +252,9 @@ export const getQuerySoldiers = async (
     }
   });
 
-  return await getSoldiersByQuery(query);
+  const soldiers = await getSoldiersByQuery(query);
+
+  return [soldiers, `0`];
 };
 
 export const handleGetQueryFilters = async (
@@ -409,6 +262,21 @@ export const handleGetQueryFilters = async (
   reply: FastifyReply
 ) => {
   const queryParams = request.query as Object;
+
+  const validQueryParams = [
+    "sort",
+    "order",
+    "filter",
+    "page",
+    "limit",
+    "select",
+  ];
+
+  if (
+    Object.keys(queryParams).every((param) => !validQueryParams.includes(param))
+  ) {
+    return await getSoldiersByFilters(request, reply);
+  }
 
   const schemaResult = validateSchema(soldiersGetRouteSchema, queryParams);
 
@@ -418,7 +286,13 @@ export const handleGetQueryFilters = async (
       .send({ error: `Failed to pass schema.` });
   }
 
-  const soldiers = await getQuerySoldiers(request, reply);
+  const [soldiers, resultCode] = await getQuerySoldiers(request, reply);
+
+  if (resultCode !== `0`) {
+    return await reply
+      .code(HttpStatus.StatusCodes.OK)
+      .send({ page: resultCode, soldiers });
+  }
 
   return await reply.code(HttpStatus.StatusCodes.OK).send(soldiers);
 };
