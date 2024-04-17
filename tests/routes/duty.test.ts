@@ -157,55 +157,59 @@ describe("Duty routes", () => {
   });
 
   describe("GET routes for duties", () => {
-    it("Should return 200 when trying to get existing duties.", async () => {
-      const response = await server.inject({
-        method: "GET",
-        url: `/duties?name=${attackingIranDuty.name}`,
-        headers: {
-          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
-        },
+    describe("GET : Search by filters", () => {
+      it("Should return 200 when trying to get existing duties.", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: `/duties?name=${attackingIranDuty.name}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).toHaveProperty("data");
       });
 
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-      expect(response.json()).toHaveProperty("data");
+      it("Should return 400 when trying to get existing duties.", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: `/duties?${notWorkingUrlParameter}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+        expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
+      });
     });
 
-    it("Should return 200 when trying to find duty by id.", async () => {
-      const response = await server.inject({
-        method: "GET",
-        url: `/duties/${attackingIranId}`,
-        headers: {
-          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
-        },
+    describe("GET: Find by duty id", () => {
+      it("Should return 200 when trying to find duty by id.", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: `/duties/${attackingIranId}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).toHaveProperty("data");
       });
 
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-      expect(response.json()).toHaveProperty("data");
-    });
+      it("Should return 404 when trying to find duty by id.", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: `/duties/${notFoundDutyId}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
 
-    it("Should return 400 when trying to get existing duties.", async () => {
-      const response = await server.inject({
-        method: "GET",
-        url: `/duties?${notWorkingUrlParameter}`,
-        headers: {
-          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
-        },
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
       });
-
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
-      expect(response.json()).deep.eq({ error: `Failed to pass schema.` });
-    });
-
-    it("Should return 404 when trying to find duty by id.", async () => {
-      const response = await server.inject({
-        method: "GET",
-        url: `/duties/${notFoundDutyId}`,
-        headers: {
-          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
-        },
-      });
-
-      expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
   });
 
