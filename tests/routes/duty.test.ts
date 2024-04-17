@@ -23,16 +23,20 @@ import {
   scheduleDutyPayload,
   testPostWorkingPayload,
   dutyInPast,
+  workingProjectionField,
+  notWorkingProjectionField,
 } from "../testData/duty.js";
 import {
   deleteDuty,
   findDuty,
   findManyDuties,
+  getDutiesByQuery,
   updateDuty,
 } from "../../src/collections/duty.js";
 import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty } from "../../src/collections/duty.js";
 import { FastifyInstance } from "fastify";
+import { getDutiesProjection } from "../../src/logic/projectionLogic.js";
 
 describe("Duty routes", () => {
   let attackingIranDuty: Duty;
@@ -209,6 +213,46 @@ describe("Duty routes", () => {
         });
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
+      });
+    });
+
+    describe("GET : projection", () => {
+      it(`Should return 200 when trying to project the duties.`, async () => {
+        const response = await server.inject({
+          url: `/duties?select=${workingProjectionField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const projection = getDutiesProjection([`${workingProjectionField}`]);
+
+        const duties = await getDutiesByQuery([{ $project: projection }]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(duties);
+      });
+
+      it(`Should return 400 when trying to project the duties.`, async () => {
+        const response = await server.inject({
+          url: `/duties?select=${notWorkingProjectionField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to project the duties.`, async () => {
+        const response = await server.inject({
+          url: `/duties?sel=${workingProjectionField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
       });
     });
   });
