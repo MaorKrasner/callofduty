@@ -10,12 +10,7 @@ import {
 } from "../collections/justice-board.js";
 import { findSoldier } from "../collections/soldier.js";
 import { validateSchema } from "../schemas/validator.js";
-import {
-  mongoSignsParsingDictionary,
-  paginationSchema,
-  projectionSchema,
-  sortingSchema,
-} from "../schemas/useableSchemas.js";
+import { mongoSignsParsingDictionary } from "../schemas/useableSchemas.js";
 import logger from "../logger.js";
 import {
   getJusticeBoardProjection,
@@ -65,17 +60,6 @@ export const sortJusticeBoard = async (
     sort?: string;
     order?: string;
   };
-
-  logger.info(`Sort: ${sortingFilter.sort}`);
-  logger.info(`Order: ${sortingFilter.order}`);
-
-  const schemaResult = validateSchema(sortingSchema, sortingFilter);
-
-  if (!schemaResult || !validSortFilters.includes(sortingFilter.sort!)) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema` });
-  }
 
   const justiceBoard = await aggregateJusticeBoard();
   const sortedJusticeBoard = justiceBoard.sort((a, b) => {
@@ -139,14 +123,6 @@ export const paginateJusticeBoard = async (
   const page = Number(query.page);
   const limit = Number(query.limit);
 
-  const schemaResult = validateSchema(paginationSchema, { page, limit });
-
-  if (!schemaResult) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
-
   const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
 
@@ -175,20 +151,7 @@ export const projectJusticeBoard = async (
 ) => {
   const { select } = request.query as { select?: string };
 
-  const schemaResult = validateSchema(projectionSchema, { select });
-
   const projectionParameters = select!.replace(" ", "").split(",");
-
-  if (
-    !schemaResult ||
-    projectionParameters.filter((param) => {
-      return justiceBoardValidFields.includes(param);
-    }).length === 0
-  ) {
-    return await reply
-      .code(HttpStatus.StatusCodes.BAD_REQUEST)
-      .send({ error: `Failed to pass schema.` });
-  }
 
   const projection = getJusticeBoardProjection(projectionParameters);
 
