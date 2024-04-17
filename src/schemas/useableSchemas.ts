@@ -11,7 +11,7 @@ const dutyKeys = Object.keys(dutySample);
 const soldierKeys = Object.keys(soldierSample);
 const justiceBoardKeys = Object.keys(justiceBoardSample);
 
-const stringSchema = z.string().optional();
+const stringSchema = z.string().min(1).optional();
 
 export const nearDutiesSchema = z.object({
   coordinates: z.array(z.number().positive()).length(2),
@@ -47,12 +47,20 @@ export const dutiesGetRouteSchema = z
     }
     if (obj.page) {
       conditionsArray.push(
-        !isNaN(+obj.page) && obj.limit !== undefined && !isNaN(+obj.limit)
+        !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page) &&
+          obj.limit !== undefined &&
+          !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit)
       );
     }
     if (obj.limit) {
       conditionsArray.push(
-        !isNaN(+obj.limit) && obj.page !== undefined && !isNaN(+obj.page)
+        !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit) &&
+          obj.page !== undefined &&
+          !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page)
       );
     }
     if (obj.populate) {
@@ -107,10 +115,22 @@ export const soldiersGetRouteSchema = z
       );
     }
     if (obj.page) {
-      conditionsArray.push(obj.limit !== undefined);
+      conditionsArray.push(
+        !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page) &&
+          obj.limit !== undefined &&
+          !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit)
+      );
     }
     if (obj.limit) {
-      conditionsArray.push(obj.page !== undefined);
+      conditionsArray.push(
+        !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit) &&
+          obj.page !== undefined &&
+          !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page)
+      );
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
@@ -158,25 +178,31 @@ export const justiceBoardRouteSchema = z
     }
     if (obj.page) {
       conditionsArray.push(
-        !isNaN(+obj.page) && obj.limit !== undefined && !isNaN(+obj.limit)
+        !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page) &&
+          obj.limit !== undefined &&
+          !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit)
       );
     }
     if (obj.limit) {
       conditionsArray.push(
-        !isNaN(+obj.limit) && obj.page !== undefined && !isNaN(+obj.page)
+        !isNaN(+obj.limit) &&
+          Number.isInteger(+obj.limit) &&
+          obj.page !== undefined &&
+          !isNaN(+obj.page) &&
+          Number.isInteger(+obj.page)
       );
     }
     if (obj.populate) {
-      conditionsArray.push(obj.populate === "soldiers");
+      conditionsArray.push(obj.populate === "_id");
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
         .replace(" ", "")
         .split(/(>=|<=|<|>|=)/);
 
-      const validFilters = ["minRank", "maxRank", "soldiersRequired", "value"];
-
-      conditionsArray.push(validFilters.includes(field) && !isNaN(+valueStr));
+      conditionsArray.push(field !== "score" && !isNaN(+valueStr));
     }
     if (obj.select) {
       const projectionParameters = obj.select.replace(" ", "").split(",");
