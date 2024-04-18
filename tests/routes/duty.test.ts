@@ -25,12 +25,38 @@ import {
   dutyInPast,
   workingProjectionField,
   notWorkingProjectionField,
+  workingPopulationField,
+  workingForeignField,
+  notWorkingPopulationField,
+  workingPaginationPage,
+  workingPaginationLimit,
+  workingEmptyPaginationPage,
+  workingEmptyPaginationLimit,
+  notWorkingPaginationPages,
+  notWorkingPaginationLimit,
+  workingGeoQueryCoordinates,
+  workingGeoQueryRadius,
+  emptyWorkingGeoQueryRadius,
+  notWorkingGeoQueryCoordinates,
+  emptyWorkingGeoQueryCoordinates,
+  workingSortFilter,
+  workingSortOrders,
+  notWorkingSortFilter,
+  notWorkingSortOrders,
+  notWorkingFilterFields,
+  notWorkingFilterValues,
+  emptyWorkingFilterFields,
+  workingFilterField,
+  workingFilterValue,
+  workingDutyValue,
 } from "../testData/duty.js";
 import {
   deleteDuty,
+  findAllDuties,
   findDuty,
   findManyDuties,
   getDutiesByQuery,
+  skipDuties,
   updateDuty,
 } from "../../src/collections/duty.js";
 import { createDutyDocument } from "../../src/controllers/dutyController.js";
@@ -216,6 +242,475 @@ describe("Duty routes", () => {
       });
     });
 
+    describe("GET : sorting", () => {
+      it(`Should return 200 when trying to sort duties (value).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${workingSortFilter}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const $sort = {} as Record<string, number>;
+        $sort[workingSortFilter] = 1;
+
+        const duties = await getDutiesByQuery([{ $sort }]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to sort duties (value & desc).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${workingSortFilter}&order=${workingSortOrders[0]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const orderKey = workingSortOrders[0] === "ascend" ? 1 : -1;
+
+        const $sort = {} as Record<string, number>;
+        $sort[workingSortFilter] = orderKey;
+
+        const duties = await getDutiesByQuery([{ $sort }]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to sort duties (value & ascend).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${workingSortFilter}&order=${workingSortOrders[1]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const orderKey = workingSortOrders[1] === "ascend" ? 1 : -1;
+
+        const $sort = {} as Record<string, number>;
+        $sort[workingSortFilter] = orderKey;
+
+        const duties = await getDutiesByQuery([{ $sort }]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 400 when trying to sort duties (val).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${notWorkingSortFilter}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to sort duties (val & desc).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${notWorkingSortFilter}&order=${workingSortOrders[0]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to sort duties (value & asc).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${workingSortFilter}&order=${notWorkingSortOrders[1]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to sort duties (val & asc).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${notWorkingSortFilter}&order=${notWorkingSortOrders[1]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to sort duties (ord).`, async () => {
+        const response = await server.inject({
+          url: `/duties?sort=${workingSortFilter}&ord=${workingSortOrders[0]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+    });
+
+    describe("GET : filtering by query parameters", () => {
+      it(`Should return 200 when trying to filter duties (maxRank).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${emptyWorkingFilterFields[0]}>=${workingFilterValue}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const duties = await getDutiesByQuery([
+          {
+            $match: {
+              [emptyWorkingFilterFields[0]]: { $gte: workingFilterValue },
+            },
+          },
+        ]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to filter duties (soldiersRequired).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${emptyWorkingFilterFields[1]}=${workingFilterValue}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const duties = await getDutiesByQuery([
+          {
+            $match: {
+              [emptyWorkingFilterFields[1]]: { $eq: workingFilterValue },
+            },
+          },
+        ]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to filter duties (value).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${workingFilterField}=${workingDutyValue}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const duties = await getDutiesByQuery([
+          {
+            $match: {
+              [workingFilterField]: { $eq: workingFilterValue },
+            },
+          },
+        ]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to filter duties([]).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${emptyWorkingFilterFields[0]}>6`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq([]);
+      });
+
+      it(`Should return 200 when trying to filter duties([]).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${emptyWorkingFilterFields[1]}=-1`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq([]);
+      });
+
+      it(`Should return 200 when trying to filter duties([]).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${workingFilterField}>200`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq([]);
+      });
+
+      it(`Should return 400 when trying to filter duties (val).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${notWorkingFilterFields[0]}=${notWorkingFilterValues[0]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to filter duties (filt).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filt=${notWorkingFilterFields[0]}=${notWorkingFilterValues[0]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to filter duties (value >= 8c).`, async () => {
+        const response = await server.inject({
+          url: `/duties?filter=${notWorkingFilterFields[1]}>=${notWorkingFilterValues[1]}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+    });
+
+    describe("GET : Geo queries", () => {
+      it(`Should return 200 when trying to geo query the duties`, async () => {
+        const response = await server.inject({
+          url: `/duties?near=${workingGeoQueryCoordinates}&radius=${workingGeoQueryRadius}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const coordinates = workingGeoQueryCoordinates
+          .replace(" ", "")
+          .split(",");
+
+        const duties = await getDutiesByQuery([
+          {
+            $geoNear: {
+              near: {
+                type: "Point",
+                coordinates: [
+                  parseFloat(coordinates[0]),
+                  parseFloat(coordinates[1]),
+                ],
+              },
+              distanceField: "distance",
+              maxDistance: workingGeoQueryRadius,
+              spherical: true,
+            },
+          },
+        ]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 200 when trying to geo query the duties ([])`, async () => {
+        const response = await server.inject({
+          url: `/duties?near=${emptyWorkingGeoQueryCoordinates}&radius=${emptyWorkingGeoQueryRadius}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq([]);
+      });
+
+      it(`Should return 400 when trying to geo query the duties (bad coordinates)`, async () => {
+        const response = await server.inject({
+          url: `/duties?near=${notWorkingGeoQueryCoordinates}&radius=${workingGeoQueryRadius}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to geo query the duties (n)`, async () => {
+        const response = await server.inject({
+          url: `/duties?n=${workingGeoQueryCoordinates}&radius=${workingGeoQueryRadius}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to geo query the duties (rad)`, async () => {
+        const response = await server.inject({
+          url: `/duties?near=${workingGeoQueryCoordinates}&rad=${workingGeoQueryRadius}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+    });
+
+    describe("GET : pagination", () => {
+      it(`Should return 200 when trying to paginate duties`, async () => {
+        const response = await server.inject({
+          url: `/duties?page=${workingPaginationPage}&limit=${workingPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const page = Math.trunc(workingPaginationPage);
+        const limit = Math.trunc(workingPaginationLimit);
+
+        const startIndex = (page - 1) * limit;
+
+        const duties = await skipDuties(startIndex, limit);
+
+        const amountOfSoldiers = (await findAllDuties()).length;
+
+        const totalPages = Math.ceil(amountOfSoldiers / limit);
+
+        const pageNumber = `${page}/${totalPages}`;
+
+        const dutiesStr = pageNumber.concat(JSON.stringify(duties));
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(JSON.stringify(response.json())).deep.eq(dutiesStr);
+      });
+
+      it(`Should return 200 when trying to paginate duties ([])`, async () => {
+        const response = await server.inject({
+          url: `/duties?page=${workingEmptyPaginationPage}&limit=${workingEmptyPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq({
+          page: "1000/1",
+          duties: [],
+        });
+      });
+
+      it(`Should return 400 when trying to paginate duties (page)`, async () => {
+        const response = await server.inject({
+          url: `/duties?page=${notWorkingPaginationPages[0]}&limit=${notWorkingPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to paginate duties (empty page)`, async () => {
+        const response = await server.inject({
+          url: `/duties?page=&limit=${notWorkingPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to paginate duties (pa)`, async () => {
+        const response = await server.inject({
+          url: `/duties?pa=${workingPaginationPage}&limit=${notWorkingPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to paginate duties (negative page)`, async () => {
+        const response = await server.inject({
+          url: `/duties?page=${notWorkingPaginationPages[1]}&limit=${notWorkingPaginationLimit}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+    });
+
+    describe("GET : population", () => {
+      it(`Should return 200 when trying to populate the duties.`, async () => {
+        const response = await server.inject({
+          url: `/duties?populate=${workingPopulationField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        const duties = await getDutiesByQuery([
+          {
+            $lookup: {
+              from: `${workingPopulationField}`,
+              localField: `${workingPopulationField}`,
+              foreignField: `${workingForeignField}`,
+              as: `${workingPopulationField}`,
+            },
+          },
+        ]);
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
+        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+      });
+
+      it(`Should return 400 when trying to populate duties (solds)`, async () => {
+        const response = await server.inject({
+          url: `/duties?populate=${notWorkingPopulationField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to populate duties (pop)`, async () => {
+        const response = await server.inject({
+          url: `/duties?pop=${workingPopulationField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+
+      it(`Should return 400 when trying to populate duties (pop, solds)`, async () => {
+        const response = await server.inject({
+          url: `/duties?pop=${notWorkingPopulationField}`,
+          headers: {
+            authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          },
+        });
+
+        expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
+      });
+    });
+
     describe("GET : projection", () => {
       it(`Should return 200 when trying to project the duties.`, async () => {
         const response = await server.inject({
@@ -233,7 +728,7 @@ describe("Duty routes", () => {
         expect(response.json()).deep.eq(duties);
       });
 
-      it(`Should return 400 when trying to project the duties.`, async () => {
+      it(`Should return 400 when trying to project the duties (nameeee).`, async () => {
         const response = await server.inject({
           url: `/duties?select=${notWorkingProjectionField}`,
           headers: {
@@ -244,7 +739,7 @@ describe("Duty routes", () => {
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
       });
 
-      it(`Should return 400 when trying to project the duties.`, async () => {
+      it(`Should return 400 when trying to project the duties (sel).`, async () => {
         const response = await server.inject({
           url: `/duties?sel=${workingProjectionField}`,
           headers: {
