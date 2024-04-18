@@ -49,25 +49,34 @@ export const dutiesGetRouteSchema = z
       conditionsArray.push(
         !isNaN(+obj.page) &&
           Number.isInteger(+obj.page) &&
+          +obj.page > 0 &&
           obj.limit !== undefined &&
           !isNaN(+obj.limit) &&
-          Number.isInteger(+obj.limit)
+          Number.isInteger(+obj.limit) &&
+          +obj.limit > 0
       );
     }
     if (obj.limit) {
       conditionsArray.push(
         !isNaN(+obj.limit) &&
           Number.isInteger(+obj.limit) &&
+          +obj.limit > 0 &&
           obj.page !== undefined &&
           !isNaN(+obj.page) &&
-          Number.isInteger(+obj.page)
+          Number.isInteger(+obj.page) &&
+          +obj.page > 0
       );
     }
     if (obj.populate) {
       conditionsArray.push(obj.populate === "soldiers");
     }
     if (obj.near) {
-      conditionsArray.push(obj.radius !== undefined && !isNaN(+obj.radius));
+      const coordinates = obj.near.replace(" ", "").split(",");
+      conditionsArray.push(
+        obj.radius !== undefined &&
+          !isNaN(+obj.radius) &&
+          coordinates.every((coordinate) => !isNaN(+coordinate))
+      );
     }
     if (obj.filter) {
       let [field, operator, valueStr] = obj.filter
@@ -118,18 +127,22 @@ export const soldiersGetRouteSchema = z
       conditionsArray.push(
         !isNaN(+obj.page) &&
           Number.isInteger(+obj.page) &&
+          +obj.page > 0 &&
           obj.limit !== undefined &&
           !isNaN(+obj.limit) &&
-          Number.isInteger(+obj.limit)
+          Number.isInteger(+obj.limit) &&
+          +obj.limit > 0
       );
     }
     if (obj.limit) {
       conditionsArray.push(
         !isNaN(+obj.limit) &&
           Number.isInteger(+obj.limit) &&
+          +obj.limit > 0 &&
           obj.page !== undefined &&
           !isNaN(+obj.page) &&
-          Number.isInteger(+obj.page)
+          Number.isInteger(+obj.page) &&
+          +obj.page > 0
       );
     }
     if (obj.filter) {
@@ -180,18 +193,22 @@ export const justiceBoardRouteSchema = z
       conditionsArray.push(
         !isNaN(+obj.page) &&
           Number.isInteger(+obj.page) &&
+          +obj.page > 0 &&
           obj.limit !== undefined &&
           !isNaN(+obj.limit) &&
-          Number.isInteger(+obj.limit)
+          Number.isInteger(+obj.limit) &&
+          +obj.limit > 0
       );
     }
     if (obj.limit) {
       conditionsArray.push(
         !isNaN(+obj.limit) &&
           Number.isInteger(+obj.limit) &&
+          +obj.limit > 0 &&
           obj.page !== undefined &&
           !isNaN(+obj.page) &&
-          Number.isInteger(+obj.page)
+          Number.isInteger(+obj.page) &&
+          +obj.page > 0
       );
     }
     if (obj.populate) {
