@@ -132,6 +132,54 @@ export const workingProjectionField = "name";
 
 export const notWorkingProjectionField = "nameeeeeee";
 
+export const workingPopulationField = "soldiers";
+
+export const notWorkingPopulationField = "solds";
+
+export const workingForeignField = "_id";
+
+export const workingPaginationPage = 1;
+
+export const workingPaginationLimit = 1;
+
+export const workingEmptyPaginationPage = 1000;
+
+export const workingEmptyPaginationLimit = 90;
+
+export const notWorkingPaginationPages = ["8cb", "-3"];
+
+export const notWorkingPaginationLimit = 2;
+
+export const workingGeoQueryCoordinates = "32.0853,34.7818";
+
+export const workingGeoQueryRadius = 10000000000;
+
+export const emptyWorkingGeoQueryCoordinates = "67.57,64.64";
+
+export const emptyWorkingGeoQueryRadius = 1;
+
+export const notWorkingGeoQueryCoordinates = "32.0853c,34.7818";
+
+export const workingSortFilter = "value";
+
+export const notWorkingSortFilter = "val";
+
+export const workingSortOrders = ["desc", "ascend"];
+
+export const notWorkingSortOrders = ["de", "asc"];
+
+export const workingFilterField = "value";
+
+export const notWorkingFilterFields = ["val", "rank.value"];
+
+export const notWorkingFilterValues = ["4", "8c"];
+
+export const emptyWorkingFilterFields = ["maxRank", "soldiersRequired"];
+
+export const workingFilterValue = 1;
+
+export const workingDutyValue = 8;
+
 export const dutySortingUrlsDictionary: [string, string][] = [
   ["duties?sort=value", "200"],
   ["duties?sort=val", "400"],
