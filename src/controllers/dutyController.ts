@@ -545,13 +545,13 @@ export const getQueryDuties = async (
 
     const startIndex = (page - 1) * limit;
 
-    const soldiers = await skipDuties(startIndex, limit);
+    const duties = await skipDuties(startIndex, limit);
 
     const amountOfSoldiers = (await findAllDuties()).length;
 
     const totalPages = Math.ceil(amountOfSoldiers / limit);
 
-    return [soldiers, `${page}/${totalPages}`];
+    return [duties, `${page}/${totalPages}`];
   }
 
   keys.forEach((key) => {
@@ -578,21 +578,24 @@ export const getQueryDuties = async (
       });
     }
 
-    if (key === "near" || key === "radius") {
+    if (key === "near") {
       const coordinates = (dictionary["near"] as string)
         .replace(" ", "")
         .split(",");
-      const radius = dictionary["radius"] as Number;
+      const radius = parseFloat(dictionary["radius"] as string);
 
       query.push({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [coordinates[0], coordinates[1]],
-            },
-            $maxDistance: radius,
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [
+              parseFloat(coordinates[0]),
+              parseFloat(coordinates[1]),
+            ],
           },
+          distanceField: "distance",
+          maxDistance: radius,
+          spherical: true,
         },
       });
     }
