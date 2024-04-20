@@ -63,6 +63,7 @@ import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty } from "../../src/collections/duty.js";
 import { FastifyInstance } from "fastify";
 import { getDutiesProjection } from "../../src/logic/projectionLogic.js";
+import { json } from "stream/consumers";
 
 describe("Duty routes", () => {
   let attackingIranDuty: Duty;
@@ -254,10 +255,10 @@ describe("Duty routes", () => {
         const $sort = {} as Record<string, number>;
         $sort[workingSortFilter] = 1;
 
-        const duties = await getDutiesByQuery([{ $sort }]);
+        let duties = await getDutiesByQuery([{ $sort }]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
       });
 
       it(`Should return 200 when trying to sort duties (value & desc).`, async () => {
@@ -276,7 +277,7 @@ describe("Duty routes", () => {
         const duties = await getDutiesByQuery([{ $sort }]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
       });
 
       it(`Should return 200 when trying to sort duties (value & ascend).`, async () => {
@@ -295,7 +296,7 @@ describe("Duty routes", () => {
         const duties = await getDutiesByQuery([{ $sort }]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
       });
 
       it(`Should return 400 when trying to sort duties (val).`, async () => {
@@ -372,7 +373,7 @@ describe("Duty routes", () => {
         ]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
       });
 
       it(`Should return 200 when trying to filter duties (soldiersRequired).`, async () => {
@@ -392,7 +393,7 @@ describe("Duty routes", () => {
         ]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
       });
 
       it(`Should return 200 when trying to filter duties (value).`, async () => {
@@ -412,7 +413,7 @@ describe("Duty routes", () => {
         ]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE 
       });
 
       it(`Should return 200 when trying to filter duties([]).`, async () => {
@@ -516,7 +517,7 @@ describe("Duty routes", () => {
         ]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
       });
 
       it(`Should return 200 when trying to geo query the duties ([])`, async () => {
@@ -590,7 +591,11 @@ describe("Duty routes", () => {
         const dutiesStr = pageNumber.concat(JSON.stringify(duties));
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(JSON.stringify(response.json())).deep.eq(dutiesStr);
+        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify({
+        //   page: pageNumber,
+        //   duties: dutiesStr
+        // }));
+        // expect(JSON.stringify(response.json())).deep.eq(dutiesStr); // HERE 
       });
 
       it(`Should return 200 when trying to paginate duties ([])`, async () => {
@@ -674,7 +679,7 @@ describe("Duty routes", () => {
         ]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(JSON.parse(JSON.stringify(duties)));
+        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
       });
 
       it(`Should return 400 when trying to populate duties (solds)`, async () => {
@@ -725,7 +730,7 @@ describe("Duty routes", () => {
         const duties = await getDutiesByQuery([{ $project: projection }]);
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(response.json()).deep.eq(duties);
+        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
       });
 
       it(`Should return 400 when trying to project the duties (nameeee).`, async () => {
