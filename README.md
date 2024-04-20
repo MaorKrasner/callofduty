@@ -37,6 +37,8 @@ To run the project follow the next steps :
        [Duty routes](src\routes\dutyRoutes.ts)
        [Justice board routes](src\routes\justiceBoardRoutes.ts)
     4. execute the command docker-compose down to stop the containers.
+    5. IMPORTANT ! if you don't have the dist folder, the project will not work.
+       Make sure you run the command npm run build before you start the project.
 
 ## Configuration
 
