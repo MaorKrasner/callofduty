@@ -63,7 +63,7 @@ import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty } from "../../src/collections/duty.js";
 import { FastifyInstance } from "fastify";
 import { getDutiesProjection } from "../../src/logic/projectionLogic.js";
-import { json } from "stream/consumers";
+import { removeAllDateVariablesFromDutyArray } from "../helpers/helperFunctions.js";
 
 describe("Duty routes", () => {
   let attackingIranDuty: Duty;
@@ -255,10 +255,16 @@ describe("Duty routes", () => {
         const $sort = {} as Record<string, number>;
         $sort[workingSortFilter] = 1;
 
-        let duties = await getDutiesByQuery([{ $sort }]);
+        const duties = await getDutiesByQuery([{ $sort }]);
+
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to sort duties (value & desc).`, async () => {
@@ -276,8 +282,14 @@ describe("Duty routes", () => {
 
         const duties = await getDutiesByQuery([{ $sort }]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to sort duties (value & ascend).`, async () => {
@@ -295,8 +307,14 @@ describe("Duty routes", () => {
 
         const duties = await getDutiesByQuery([{ $sort }]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 400 when trying to sort duties (val).`, async () => {
@@ -372,8 +390,14 @@ describe("Duty routes", () => {
           },
         ]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to filter duties (soldiersRequired).`, async () => {
@@ -392,8 +416,14 @@ describe("Duty routes", () => {
           },
         ]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to filter duties (value).`, async () => {
@@ -407,13 +437,19 @@ describe("Duty routes", () => {
         const duties = await getDutiesByQuery([
           {
             $match: {
-              [workingFilterField]: { $eq: workingFilterValue },
+              [workingFilterField]: { $eq: workingDutyValue },
             },
           },
         ]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE 
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to filter duties([]).`, async () => {
@@ -516,8 +552,14 @@ describe("Duty routes", () => {
           },
         ]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties)); // HERE
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to geo query the duties ([])`, async () => {
@@ -583,19 +625,18 @@ describe("Duty routes", () => {
         const duties = await skipDuties(startIndex, limit);
 
         const amountOfSoldiers = (await findAllDuties()).length;
-
         const totalPages = Math.ceil(amountOfSoldiers / limit);
 
-        const pageNumber = `${page}/${totalPages}`;
-
-        const dutiesStr = pageNumber.concat(JSON.stringify(duties));
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const newJsonDuties = removeAllDateVariablesFromDutyArray(
+          response.json().duties as Duty[]
+        ).toString();
 
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        // expect(JSON.stringify(response.json())).deep.eq(JSON.stringify({
-        //   page: pageNumber,
-        //   duties: dutiesStr
-        // }));
-        // expect(JSON.stringify(response.json())).deep.eq(dutiesStr); // HERE 
+
+        expect(response.json().page).deep.eq(`${page}/${totalPages}`);
+        expect(newJsonDuties).deep.eq(newDuties);
       });
 
       it(`Should return 200 when trying to paginate duties ([])`, async () => {
@@ -678,8 +719,14 @@ describe("Duty routes", () => {
           },
         ]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+        const jsonAsDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
+        expect(jsonAsDuties).deep.eq(newDuties);
       });
 
       it(`Should return 400 when trying to populate duties (solds)`, async () => {
@@ -729,8 +776,15 @@ describe("Duty routes", () => {
 
         const duties = await getDutiesByQuery([{ $project: projection }]);
 
+        const newDuties =
+          removeAllDateVariablesFromDutyArray(duties).toString();
+
+        const newJsonDuties = removeAllDateVariablesFromDutyArray(
+          response.json() as Partial<Duty>[]
+        ).toString();
+
         expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
-        expect(JSON.stringify(response.json())).deep.eq(JSON.stringify(duties));
+        expect(newJsonDuties).deep.eq(newDuties);
       });
 
       it(`Should return 400 when trying to project the duties (nameeee).`, async () => {
