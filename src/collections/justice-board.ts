@@ -50,7 +50,7 @@ export const aggregateJusticeBoard = async () => {
 export const aggregateJusticeBoardById = async (id: string) => {
   const cloneBasicFilter = Array.from(basicFilter);
 
-  cloneBasicFilter.unshift({
+  cloneBasicFilter.push({
     $match: {
       _id: id,
     },
@@ -59,4 +59,53 @@ export const aggregateJusticeBoardById = async (id: string) => {
   const aggregationArray = await calculateAggregation(cloneBasicFilter);
 
   return aggregationArray[0].score;
+};
+
+export const filterJusticeBoardByQuery = async (
+  operator: string,
+  value: number
+) => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.push({
+    $match: {
+      score: { [operator]: value },
+    },
+  });
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
+};
+
+export const projectJusticeBoardByQuery = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.pop();
+  cloneBasicFilter.push({
+    $project: projection,
+  });
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
+};
+
+export const populateJusticeBoardByQuery = async () => {
+  const cloneBasicFilter = Array.from(basicFilter);
+
+  cloneBasicFilter.push({
+    $lookup: {
+      from: "soldiers",
+      localField: "_id",
+      foreignField: "_id",
+      as: "soldier",
+    },
+  });
+
+  const aggregationArray = await calculateAggregation(cloneBasicFilter);
+
+  return aggregationArray;
 };

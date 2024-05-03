@@ -1,11 +1,15 @@
 import { UpdateFilter } from "mongodb";
 import { client } from "../db/connections.js";
 import {
+  aggregate,
   deleteMany,
   deleteOne,
+  findAll,
   findMany,
   findOne,
   insertOne,
+  paginate,
+  project,
   updateOne,
 } from "../db/operations.js";
 import { type Soldier } from "../types/soldier.js";
@@ -19,6 +23,13 @@ export const findSoldier = async (id: string) => {
     { _id: id }
   );
   return soldier as Soldier;
+};
+
+export const findAllSoldiers = async () => {
+  return (await findAll<Soldier & Document>(
+    client,
+    soldiersCollectionName
+  )) as Soldier[];
 };
 
 export const insertSoldier = async (soldier: Soldier) => {
@@ -97,4 +108,62 @@ export const updateSoldier = async (id: string, data: Partial<Soldier>) => {
   );
 
   return updateResult.modifiedCount > 0 ? await findSoldier(id) : undefined;
+};
+
+export const sortSoldiersWithFilter = async (sort: string, order: string) => {
+  const sortOrderAsNumber = order === "ascend" ? 1 : -1;
+  const sortedSoldiers = await aggregate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    [{ $sort: { [sort]: sortOrderAsNumber } }]
+  );
+
+  return sortedSoldiers as Soldier[];
+};
+
+export const filterSoldiers = async (
+  field: string,
+  operator: string,
+  value: number
+) => {
+  const findResult = await findMany<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    { [field]: { [operator]: value } }
+  );
+
+  return findResult as Soldier[];
+};
+
+export const skipSoldiers = async (startIndex: number, limit: number) => {
+  const soldiersAfterSkipping = await paginate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    startIndex,
+    limit
+  );
+
+  return soldiersAfterSkipping as Soldier[];
+};
+
+export const soldiersProjection = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
+  const soldiersAfterProjection = await project<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    projection
+  );
+
+  return soldiersAfterProjection as Partial<Soldier>[];
+};
+
+export const getSoldiersByQuery = async (query: Object[]) => {
+  const result = await aggregate<Soldier & Document>(
+    client,
+    soldiersCollectionName,
+    query
+  );
+
+  return result as Partial<Soldier>[];
 };

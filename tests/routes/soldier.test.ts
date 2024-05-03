@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it, beforeAll } from "vitest";
 import * as HttpStatus from "http-status-codes";
+import { FastifyInstance } from "fastify";
 
-import { initialize } from "../../src/app.js";
-import { close } from "../../src/server.js";
+import { close, createServer } from "../../src/server.js";
 import { Soldier } from "../../src/types/soldier.js";
 import {
   deleteSoldier,
@@ -20,28 +20,35 @@ import {
   workingPostPayload,
 } from "../testData/soldier.js";
 import { createSoldierDocument } from "../../src/controllers/soldierController.js";
-
-let testSoldierId: string;
-
-const server = await initialize();
-
-beforeAll(async () => {
-  const soldierToInsert = createSoldierDocument(testSoldier);
-  await insertSoldier(soldierToInsert);
-  testSoldierId = testSoldier._id!.toString();
-});
-
-afterAll(async () => {
-  await deleteSoldier(testSoldierId);
-  await close(server);
-});
+import { closeDBConnection, connectToDB } from "../../src/db/connections.js";
 
 describe("Soldier routes", () => {
+  let server: FastifyInstance;
+
+  let testSoldierId: string;
+
+  beforeAll(async () => {
+    server = await createServer();
+    await connectToDB();
+
+    const soldierToInsert = createSoldierDocument(testSoldier);
+    await insertSoldier(soldierToInsert);
+    testSoldierId = testSoldier._id!.toString();
+  });
+
+  afterAll(async () => {
+    await deleteSoldier(testSoldierId);
+    await closeDBConnection();
+  });
+
   describe("GET routes for soldiers", () => {
     it("Should return 200 when trying to get a soldier.", async () => {
       const response = await server.inject({
         method: "GET",
         url: `/soldiers/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -52,27 +59,34 @@ describe("Soldier routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/soldiers/${notFoundSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
     });
 
-    // check here
     it("Should return 200 when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",
         url: `/soldiers?limitations=${existingLimitations[0]},${existingLimitations[1]}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
       expect(response.json()).toHaveProperty("data");
     });
 
-    // check here
     it("Should return 200 and data: [] when trying to get soldiers by filters.", async () => {
       const response = await server.inject({
         method: "GET",
         url: `/soldiers?limitations=${notExistingLimitation}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -88,6 +102,9 @@ describe("Soldier routes", () => {
         method: "POST",
         url: "/soldiers",
         payload: workingPostPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CREATED);
@@ -99,6 +116,9 @@ describe("Soldier routes", () => {
         method: "POST",
         url: "/soldiers",
         payload: notWorkingPostPayloads[0],
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -110,6 +130,9 @@ describe("Soldier routes", () => {
         method: "POST",
         url: "/soldiers",
         payload: notWorkingPostPayloads[1],
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.CONFLICT);
@@ -121,6 +144,9 @@ describe("Soldier routes", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/soldiers/${workingPostPayload._id}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NO_CONTENT);
@@ -130,6 +156,9 @@ describe("Soldier routes", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/soldiers/${notFoundSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);
@@ -144,6 +173,9 @@ describe("Soldier routes", () => {
         method: "PATCH",
         url: `/soldiers/${testSoldierId}`,
         payload: workingPatchPayload,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const responseAsSoldier = response.json() as Soldier;
@@ -160,6 +192,9 @@ describe("Soldier routes", () => {
         method: "PATCH",
         url: `/soldiers/${testSoldierId}`,
         payload: notWorkingPatchPayloads[0],
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -171,6 +206,9 @@ describe("Soldier routes", () => {
         method: "PATCH",
         url: `/soldiers/${testSoldierId}`,
         payload: notWorkingPatchPayloads[1],
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.BAD_REQUEST);
@@ -184,6 +222,9 @@ describe("Soldier routes", () => {
         method: "PATCH",
         url: `/soldiers/${notFoundSoldierId}`,
         payload: notWorkingPatchPayloads[1],
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);

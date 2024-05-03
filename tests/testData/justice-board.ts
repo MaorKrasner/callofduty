@@ -1,6 +1,6 @@
 import { type Soldier } from "../../src/types/soldier.js";
 
-import { type Duty } from "../../src/types/duty.js"
+import { type Duty } from "../../src/types/duty.js";
 
 export const justiceBoardTestSoldier: Partial<Soldier> = {
   _id: "4567810",
@@ -21,7 +21,7 @@ export const justiceBoardTestDuty: Partial<Duty> = {
   description: "Duty for justice board tests to check score",
   location: {
     type: "Point",
-    coordinates: [123.78, 98.46]
+    coordinates: [32.0853, 34.7818],
   },
   startTime: new Date("2024-04-27T12:30:00.000Z"),
   endTime: new Date("2024-04-30T12:30:00.000Z"),
@@ -29,7 +29,7 @@ export const justiceBoardTestDuty: Partial<Duty> = {
   maxRank: 6,
   constraints: [],
   soldiersRequired: 2,
-  value: 15
+  value: 15,
 };
 
 export const secondJusticeBoardTestDuty: Partial<Duty> = {
@@ -37,7 +37,7 @@ export const secondJusticeBoardTestDuty: Partial<Duty> = {
   description: "Second duty for justice board tests to check score",
   location: {
     type: "Point",
-    coordinates: [1568.08, 948.45]
+    coordinates: [32.0853, 34.7818],
   },
   startTime: new Date("2024-05-14T12:30:00.000Z"),
   endTime: new Date("2024-05-18T12:30:00.000Z"),
@@ -45,5 +45,5 @@ export const secondJusticeBoardTestDuty: Partial<Duty> = {
   maxRank: 6,
   constraints: [],
   soldiersRequired: 5,
-  value: 20
+  value: 20,
 };

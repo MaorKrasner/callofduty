@@ -4,9 +4,12 @@ import * as HttpStatus from "http-status-codes";
 import logger from "../logger.js";
 import {
   deleteSoldier,
+  findAllSoldiers,
   findManySoldiers,
   findSoldier,
+  getSoldiersByQuery,
   insertSoldier,
+  skipSoldiers,
   updateSoldier,
 } from "../collections/soldier.js";
 import { type Soldier } from "../types/soldier.js";
@@ -16,6 +19,11 @@ import {
   soldierGetFilterSchema,
 } from "../schemas/soldierSchemas.js";
 import { validateSchema } from "../schemas/validator.js";
+import {
+  mongoSignsParsingDictionary,
+  soldiersGetRouteSchema,
+} from "../schemas/useableSchemas.js";
+import { getSoldiersProjection } from "../logic/projectionLogic.js";
 
 export const createSoldierDocument = (soldier: Partial<Soldier>): Soldier => {
   return {
@@ -179,4 +187,112 @@ export const updateSoldierById = async (
   }
 
   return await reply.status(HttpStatus.StatusCodes.OK).send(newSoldier);
+};
+
+export const getQuerySoldiers = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const dictionary = request.query as { [key: string]: string | number };
+  const keys = Object.keys(dictionary);
+
+  const query: Object[] = [];
+
+  if (keys.includes("page")) {
+    let page = dictionary["page"] as number;
+    let limit = dictionary["limit"] as number;
+
+    page = Math.trunc(page);
+    limit = Math.trunc(limit);
+
+    const startIndex = (page - 1) * limit;
+
+    const soldiers = await skipSoldiers(startIndex, limit);
+
+    const amountOfSoldiers = (await findAllSoldiers()).length;
+
+    const totalPages = Math.ceil(amountOfSoldiers / limit);
+
+    return [soldiers, `${page}/${totalPages}`];
+  }
+
+  keys.forEach((key) => {
+    if (key === "sort") {
+      let sortOrderAsNumber = 1;
+
+      if (keys.includes("order")) {
+        sortOrderAsNumber = dictionary["order"] === "ascend" ? 1 : -1;
+      }
+
+      const $sort = {} as Record<string, number>;
+      $sort[dictionary[key]] = sortOrderAsNumber;
+      query.push({ $sort });
+    }
+
+    if (key === "filter") {
+      const filterPhrase = dictionary["filter"] as string;
+
+      let [field, operator, valueStr] = filterPhrase
+        .replace(" ", "")
+        .split(/(>=|<=|<|>|=)/);
+
+      operator = mongoSignsParsingDictionary[operator];
+      const value = +valueStr;
+
+      query.push({ $match: { [field]: { [operator]: value } } });
+    }
+
+    if (key === "select") {
+      const selectPhrase = dictionary["select"] as string;
+      const projectionParameters = selectPhrase.replace(" ", "").split(",");
+
+      const projection = getSoldiersProjection(projectionParameters);
+
+      query.push({ $project: projection });
+    }
+  });
+
+  const soldiers = await getSoldiersByQuery(query);
+
+  return [soldiers, `0`];
+};
+
+export const handleGetQueryFilters = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const queryParams = request.query as Object;
+
+  const validQueryParams = [
+    "sort",
+    "order",
+    "filter",
+    "page",
+    "limit",
+    "select",
+  ];
+
+  if (
+    Object.keys(queryParams).every((param) => !validQueryParams.includes(param))
+  ) {
+    return await getSoldiersByFilters(request, reply);
+  }
+
+  const schemaResult = validateSchema(soldiersGetRouteSchema, queryParams);
+
+  if (!schemaResult) {
+    return await reply
+      .code(HttpStatus.StatusCodes.BAD_REQUEST)
+      .send({ error: `Failed to pass schema.` });
+  }
+
+  const [soldiers, resultCode] = await getQuerySoldiers(request, reply);
+
+  if (resultCode !== `0`) {
+    return await reply
+      .code(HttpStatus.StatusCodes.OK)
+      .send({ page: resultCode, soldiers });
+  }
+
+  return await reply.code(HttpStatus.StatusCodes.OK).send(soldiers);
 };

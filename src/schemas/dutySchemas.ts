@@ -45,7 +45,7 @@ export const dutyPatchSchema = z
       z
         .object({
           type: z.literal("Point"),
-          coordinates: z.array(z.number().positive()).length(2),
+          coordinates: z.array(z.number().min(-180).max(180)).length(2),
         })
         .strict()
     ),
@@ -103,6 +103,9 @@ export const dutyGetFilterSchema = z
     value: z.optional(z.number().positive()),
     minRank: z.optional(z.number().min(0).max(6)),
     maxRank: z.optional(z.number().min(0).max(6)),
+    description: z.optional(z.string().min(1)),
+    status: z.optional(z.string()),
+    soldiers: z.optional(z.array(z.string())),
   })
   .strict()
   .refine((obj) => {

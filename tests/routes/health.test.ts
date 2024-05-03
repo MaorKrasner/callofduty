@@ -1,16 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { FastifyInstance } from "fastify";
 import * as HttpStatus from "http-status-codes";
 
-import { initialize } from "../../src/app.js";
-
-const server = await initialize();
+import { closeDBConnection, connectToDB } from "../../src/db/connections.js";
+import { createServer } from "../../src/server.js";
 
 describe("Health routes", () => {
+  let server: FastifyInstance;
+
+  beforeAll(async () => {
+    server = await createServer();
+    await connectToDB();
+  });
+
+  afterAll(async () => {
+    await closeDBConnection();
+  });
+
   describe("GET routes for health", () => {
     it("Should return {status: ok} when sending request to /health route.", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);
@@ -21,6 +35,9 @@ describe("Health routes", () => {
       const response = await server.inject({
         method: "GET",
         url: "/health",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.OK);

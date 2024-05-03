@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  callofduty:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    environment:
+      DB_URI: mongodb://mongodb/
+      SERVER_PORT: 3000
+      DB_NAME: callofdutydb
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    ports:
+      - "27017:27017"

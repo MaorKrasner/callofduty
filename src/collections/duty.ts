@@ -2,15 +2,21 @@ import { ObjectId, UpdateFilter } from "mongodb";
 
 import { client } from "../db/connections.js";
 import {
+  aggregate,
   deleteMany,
   deleteOne,
+  findAll,
   findMany,
   findOne,
   insertOne,
+  paginate,
+  project,
   updateOne,
 } from "../db/operations.js";
 import { type Duty } from "../types/duty.js";
-import logger from "../logger.js";
+import config from "../config.js";
+
+const dbName: string = config.dbName;
 
 const dutiesCollectionName = "duties";
 
@@ -28,6 +34,13 @@ export const findDuty = async (id: string) => {
     _id: new ObjectId(id),
   });
   return duty as Duty;
+};
+
+export const findAllDuties = async () => {
+  return (await findAll<Duty & Document>(
+    client,
+    dutiesCollectionName
+  )) as Duty[];
 };
 
 export const deleteDuty = async (id: string) => {
@@ -71,6 +84,9 @@ export const findManyDuties = async (filter: {
   value?: number;
   minRank?: number;
   maxRank?: number;
+  description?: string;
+  status?: string;
+  soldiers?: string[];
 }) => {
   const filtersArray: any = [];
 
@@ -78,10 +94,15 @@ export const findManyDuties = async (filter: {
     filtersArray.push({ name: filter.name });
   }
 
-  logger.info(`Filter.location : ${filter.location}`);
   if (filter.location) {
     filtersArray.push({
       "location.coordinates": { $all: filter.location },
+    });
+  }
+
+  if (filter.soldiers) {
+    filtersArray.push({
+      soldiers: { $all: filter.soldiers },
     });
   }
 
@@ -115,6 +136,14 @@ export const findManyDuties = async (filter: {
     filtersArray.push({ maxRank: parseInt(String(filter.maxRank)) });
   }
 
+  if (filter.description) {
+    filtersArray.push({ description: filter.description });
+  }
+
+  if (filter.status) {
+    filtersArray.push({ status: filter.status });
+  }
+
   const combinedFilter = filtersArray.length > 0 ? { $and: filtersArray } : {};
   const duties = await findMany<Duty & Document>(
     client,
@@ -139,4 +168,117 @@ export const addConstraintsToDuty = async (
   );
 
   return updatedResult.modifiedCount > 0 ? await findDuty(id) : undefined;
+};
+
+export const sortDutiesWithFilter = async (sort: string, order: string) => {
+  const sortOrderAsNumber = order === "ascend" ? 1 : -1;
+  const sortedDuties = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    [{ $sort: { [sort]: sortOrderAsNumber } }]
+  );
+
+  return sortedDuties as Duty[];
+};
+
+export const filterDuties = async (
+  field: string,
+  operator: string,
+  value: number
+) => {
+  const findResult = await findMany<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    { [field]: { [operator]: value } }
+  );
+
+  return findResult as Duty[];
+};
+
+export const skipDuties = async (startIndex: number, limit: number) => {
+  const dutiesAfterSkipping = await paginate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    startIndex,
+    limit
+  );
+
+  return dutiesAfterSkipping as Duty[];
+};
+
+export const dutiesProjection = async (projection: {
+  [key: string]: 0 | 1;
+}) => {
+  const dutiesAfterProjection = await project<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    projection
+  );
+
+  return dutiesAfterProjection as Partial<Duty>[];
+};
+
+export const findNearDutiesByQuery = async (
+  coordinates: number[],
+  radius: number
+) => {
+  await client
+    .db(dbName)
+    .collection<Duty>(dutiesCollectionName)
+    .createIndex({ location: "2dsphere" });
+  const nearQuery = {
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [coordinates[0], coordinates[1]],
+        },
+        $maxDistance: radius,
+      },
+    },
+  };
+
+  const duties = await findMany<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    nearQuery
+  );
+
+  return duties as Duty[];
+};
+
+export const populateDutiesByQuery = async () => {
+  const query = [
+    {
+      $lookup: {
+        from: "soldiers",
+        localField: "soldiers",
+        foreignField: "_id",
+        as: "soldiers",
+      },
+    },
+  ];
+
+  const result = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    query
+  );
+
+  return result as Duty[];
+};
+
+export const getDutiesByQuery = async (query: Object[]) => {
+  await client
+    .db(dbName)
+    .collection<Duty>(dutiesCollectionName)
+    .createIndex({ location: "2dsphere" });
+
+  const result = await aggregate<Duty & Document>(
+    client,
+    dutiesCollectionName,
+    query
+  );
+
+  return result as Partial<Duty>[];
 };

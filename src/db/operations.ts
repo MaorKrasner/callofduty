@@ -52,6 +52,17 @@ export const findMany = async <P extends Document = Document>(
   return client.db(dbName).collection<P>(collectionName).find(filter).toArray();
 };
 
+export const findAll = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find({})
+    .toArray();
+};
+
 export const updateOne = async <P extends Document = Document>(
   client: MongoClient,
   collectionName: string,
@@ -85,5 +96,33 @@ export const aggregate = async <P extends Document = Document>(
     .db(dbName)
     .collection<P>(collectionName)
     .aggregate(filter)
+    .toArray();
+};
+
+export const paginate = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  startIndex: number,
+  limitNumber: number
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find()
+    .skip(startIndex)
+    .limit(limitNumber)
+    .toArray();
+};
+
+export const project = async <P extends Document = Document>(
+  client: MongoClient,
+  collectionName: string,
+  query: Object
+) => {
+  return await client
+    .db(dbName)
+    .collection<P>(collectionName)
+    .find({})
+    .project(query)
     .toArray();
 };

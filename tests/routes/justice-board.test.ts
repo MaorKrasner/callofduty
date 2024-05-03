@@ -1,22 +1,17 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import * as HttpStatus from "http-status-codes";
+import { FastifyInstance } from "fastify";
 
-import { close } from "../../src/server.js";
-import { client } from "../../src/db/connections.js";
+import { createServer } from "../../src/server.js";
 import {
-  deleteAllDuties,
-  deleteDuty,
-  findManyDuties,
-} from "../../src/collections/duty.js";
+  client,
+  closeDBConnection,
+  connectToDB,
+} from "../../src/db/connections.js";
+import { deleteDuty } from "../../src/collections/duty.js";
 import { findOne } from "../../src/db/operations.js";
 import type { Duty } from "../../src/types/duty.js";
-import { initialize } from "../../src/app.js";
-import {
-  deleteSoldier,
-  deleteAllSoldiers,
-  insertSoldier,
-  findManySoldiers,
-} from "../../src/collections/soldier.js";
+import { deleteSoldier, insertSoldier } from "../../src/collections/soldier.js";
 import { notFoundSoldierId } from "../testData/soldier.js";
 import {
   justiceBoardTestDuty,
@@ -28,75 +23,80 @@ import { createSoldierDocument } from "../../src/controllers/soldierController.j
 import { aggregateJusticeBoardById } from "../../src/collections/justice-board.js";
 import { createDutyDocument } from "../../src/controllers/dutyController.js";
 import { insertDuty, updateDuty } from "../../src/collections/duty.js";
-import { Soldier } from "../../src/types/soldier.js";
-
-let testSoldierId: string;
-let secondTestSoldierId: string;
-
-let testDuty: Duty;
-let testDutyFromDb: Duty;
-let testDutyId: string;
-
-let secondTestDuty: Duty;
-let secondTestDutyFromDb: Duty;
-let secondTestDutyId: string;
-
-const server = await initialize();
-
-beforeAll(async () => {
-  const soldierToInsert = createSoldierDocument(justiceBoardTestSoldier);
-  await insertSoldier(soldierToInsert);
-  testSoldierId = soldierToInsert._id!.toString();
-
-  const secondSoldierToInsert = createSoldierDocument(
-    secondJusticeBoardTestSoldier
-  );
-  await insertSoldier(secondSoldierToInsert);
-  secondTestSoldierId = secondSoldierToInsert._id!.toString();
-
-  testDuty = createDutyDocument(justiceBoardTestDuty);
-  await insertDuty(testDuty);
-
-  testDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
-    name: testDuty.name,
-  })) as Duty;
-  testDutyId = testDutyFromDb._id!.toString();
-
-  secondTestDuty = createDutyDocument(secondJusticeBoardTestDuty);
-  await insertDuty(secondTestDuty);
-
-  secondTestDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
-    name: secondTestDuty.name,
-  })) as Duty;
-  secondTestDutyId = secondTestDutyFromDb._id!.toString();
-});
-
-afterEach(async () => {
-  await updateDuty(testDutyId, {
-    soldiers: [],
-  });
-
-  await updateDuty(secondTestDutyId, {
-    soldiers: [],
-  });
-});
-
-afterAll(async () => {
-  await deleteSoldier(testSoldierId);
-  await deleteSoldier(secondTestSoldierId);
-
-  await deleteDuty(testDutyId);
-  await deleteDuty(secondTestDutyId);
-
-  await close(server);
-});
 
 describe("justice board routes", () => {
+  let testSoldierId: string;
+  let secondTestSoldierId: string;
+
+  let testDuty: Duty;
+  let testDutyFromDb: Duty;
+  let testDutyId: string;
+
+  let secondTestDuty: Duty;
+  let secondTestDutyFromDb: Duty;
+  let secondTestDutyId: string;
+
+  let server: FastifyInstance;
+
+  beforeAll(async () => {
+    server = await createServer();
+    await connectToDB();
+
+    const soldierToInsert = createSoldierDocument(justiceBoardTestSoldier);
+    await insertSoldier(soldierToInsert);
+    testSoldierId = soldierToInsert._id!.toString();
+
+    const secondSoldierToInsert = createSoldierDocument(
+      secondJusticeBoardTestSoldier
+    );
+    await insertSoldier(secondSoldierToInsert);
+    secondTestSoldierId = secondSoldierToInsert._id!.toString();
+
+    testDuty = createDutyDocument(justiceBoardTestDuty);
+    await insertDuty(testDuty);
+
+    testDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
+      name: testDuty.name,
+    })) as Duty;
+    testDutyId = testDutyFromDb._id!.toString();
+
+    secondTestDuty = createDutyDocument(secondJusticeBoardTestDuty);
+    await insertDuty(secondTestDuty);
+
+    secondTestDutyFromDb = (await findOne<Duty & Document>(client, "duties", {
+      name: secondTestDuty.name,
+    })) as Duty;
+    secondTestDutyId = secondTestDutyFromDb._id!.toString();
+  });
+
+  afterEach(async () => {
+    await updateDuty(testDutyId, {
+      soldiers: [],
+    });
+
+    await updateDuty(secondTestDutyId, {
+      soldiers: [],
+    });
+  });
+
+  afterAll(async () => {
+    await deleteSoldier(testSoldierId);
+    await deleteSoldier(secondTestSoldierId);
+
+    await deleteDuty(testDutyId);
+    await deleteDuty(secondTestDutyId);
+
+    await closeDBConnection();
+  });
+
   describe("GET routes for justice board", () => {
     it("Should return 200 when trying to get the justice board", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/justice-board",
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -119,6 +119,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -138,6 +141,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -161,6 +167,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${testSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(testSoldierId);
@@ -180,6 +189,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${secondTestSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       const score = await aggregateJusticeBoardById(secondTestSoldierId);
@@ -195,6 +207,9 @@ describe("justice board routes", () => {
       const response = await server.inject({
         method: "GET",
         url: `/justice-board/${notFoundSoldierId}`,
+        headers: {
+          authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+        },
       });
 
       expect(response.statusCode).toBe(HttpStatus.StatusCodes.NOT_FOUND);

@@ -4,14 +4,14 @@ import {
   createSoldier,
   deleteSoldierById,
   getSoldierById,
-  getSoldiersByFilters,
+  handleGetQueryFilters,
   updateSoldierById,
 } from "../controllers/soldierController.js";
 
 const soldierRoutes = async (server: FastifyInstance) => {
   server.post("/soldiers", createSoldier);
   server.get("/soldiers/:id", getSoldierById);
-  server.get("/soldiers", getSoldiersByFilters);
+  server.get("/soldiers", handleGetQueryFilters);
   server.delete("/soldiers/:id", deleteSoldierById);
   server.patch("/soldiers/:id", updateSoldierById);
 };
